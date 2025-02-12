@@ -23,6 +23,14 @@ namespace flex::config {
 	constexpr flex::Compiler COMPILER {flex::Compiler::eGCC};
 #elifdef _MSC_VER
 	constexpr flex::Compiler COMPILER {flex::Compiler::eMSVC};
+#else
+	#error "You're using an unsupported compiler"
+#endif
+
+#ifdef NDEBUG
+	constexpr flex::BuildType BUILD_TYPE {flex::BuildType::eRelease};
+#else
+	constexpr flex::BuildType BUILD_TYPE {flex::BuildType::eDebug};
 #endif
 
 } // namespace flex::config

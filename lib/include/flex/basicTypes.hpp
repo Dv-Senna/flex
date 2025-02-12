@@ -36,5 +36,9 @@ namespace flex {
 		eMSVC
 	};
 
+	enum class BuildType {
+		eDebug,
+		eRelease
+	};
 
 } // namespace flex

@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.21)
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendors/Catch2)
 
-file(GLOB_RECURSE FLEX_TEST_SOURCES src/*.cpp)
+file(GLOB_RECURSE FLEX_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 
 foreach (FLEX_TEST_SOURCE_FILE ${FLEX_TEST_SOURCES})
 	get_filename_component(FLEX_TEST_FILENAME ${FLEX_TEST_SOURCE_FILE} NAME_WE)

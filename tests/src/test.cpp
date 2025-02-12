@@ -1,5 +1,7 @@
 #include <flex/test.hpp>
 #include <flex/config.hpp>
+#include <flex/contiguousIterator.hpp>
+
 #include <catch2/catch_test_macros.hpp>
 
 TEST_CASE("test", "[test]") {
