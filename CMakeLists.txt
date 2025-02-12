@@ -1,0 +1,26 @@
+cmake_minimum_required(VERSION 3.21)
+
+project(flex
+	VERSION 0.0.0
+	LANGUAGES CXX
+)
+
+# config
+set(FIPPER_CPP_DIALECT 11)
+
+if (${PROJECT_IS_TOP_LEVEL})
+	set(FLEX_DEFAULT_BUILD_TESTS On)
+else()
+	set(FLEX_DEFAULT_BUILD_TESTS Off)
+endif()
+
+
+# options
+option(FLEX_BUILD_TESTS "FLEX_BUILD_TESTS" ${FLEX_DEFAULT_BUILD_TESTS})
+
+
+# subdirectories
+add_subdirectory(${PROJECT_SOURCE_DIR}/lib)
+if (FLEX_BUILD_TESTS)
+	add_subdirectory(${PROJECT_SOURCE_DIR}/tests)
+endif()
