@@ -8,7 +8,7 @@
 namespace flex {
 	template <typename T, typename Cont>
 	class ContiguousIterator {
-		using Container = std::remove_const_t<std::remove_reference_t<Cont>>;
+		using Container = std::remove_cvref_t<Cont>;
 		friend Container;
 
 		public:
@@ -60,7 +60,7 @@ namespace flex {
 
 	template <typename T, typename Cont>
 	class ReverseContiguousIterator {
-		using Container = std::remove_const_t<std::remove_reference_t<Cont>>;
+		using Container = std::remove_cvref_t<Cont>;
 		friend Container;
 
 		public:
