@@ -13,7 +13,7 @@ namespace flex {
 		friend Container;
 
 		public:
-			using IteratorCategory = flex::iteratorCategory::Contiguous;
+			static constexpr auto ITERATOR_CATEGORY {flex::IteratorCategory::eContiguous};
 			using ValueType = std::remove_reference_t<T>;
 			using ArithmeticType = std::ptrdiff_t;
 			using ReferenceType = ValueType&;
@@ -66,7 +66,7 @@ namespace flex {
 		friend Container;
 
 		public:
-			using IteratorCategory = flex::iteratorCategory::Contiguous;
+			static constexpr auto ITERATOR_CATEGORY {flex::IteratorCategory::eContiguous};
 			using ValueType = std::remove_reference_t<T>;
 			using ArithmeticType = std::ptrdiff_t;
 			using PointerType = ValueType*;
