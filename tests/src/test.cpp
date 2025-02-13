@@ -6,12 +6,19 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+
 TEST_CASE("test", "[test]") {
-	static_assert(flex::is_iterator_category_v<std::vector<int>::iterator, flex::iteratorCategory::Input>);
-	static_assert(flex::is_iterator_category_v<std::vector<int>::iterator, flex::iteratorCategory::Forward>);
-	static_assert(flex::is_iterator_category_v<std::vector<int>::iterator, flex::iteratorCategory::Bidirectional>);
-	static_assert(flex::is_iterator_category_v<std::vector<int>::iterator, flex::iteratorCategory::RandomAccess>);
-	static_assert(!flex::is_iterator_category_v<std::vector<int>::iterator, flex::iteratorCategory::Contiguous>);
+	static_assert(flex::is_input_iterator_v<std::vector<int>::iterator>);
+	static_assert(flex::is_forward_iterator_v<std::vector<int>::iterator>);
+	static_assert(flex::is_bidirectional_iterator_v<std::vector<int>::iterator>);
+	static_assert(flex::is_random_access_iterator_v<std::vector<int>::iterator>);
+	static_assert(!flex::is_contiguous_iterator_v<std::vector<int>::iterator>);
+
+	static_assert(flex::is_input_iterator_v<flex::ContiguousIterator<int, int>>);
+	static_assert(flex::is_forward_iterator_v<flex::ContiguousIterator<int, int>>);
+	static_assert(flex::is_bidirectional_iterator_v<flex::ContiguousIterator<int, int>>);
+	static_assert(flex::is_random_access_iterator_v<flex::ContiguousIterator<int, int>>);
+	static_assert(flex::is_contiguous_iterator_v<flex::ContiguousIterator<int, int>>);
 
 	flex::sayHello();
 	REQUIRE(1 == 1);
