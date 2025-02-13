@@ -12,7 +12,7 @@
 #include "flex/basicTypes.hpp"
 
 
-namespace flex {namespace config {
+namespace flex::config {
 	constexpr flex::Version VERSION {__FLEX_VERSION_MAJOR, __FLEX_VERSION_MINOR, __FLEX_VERSION_PATCH};
 
 #if defined(__linux__)
@@ -123,4 +123,4 @@ namespace flex {namespace config {
 
 	} // namespace cppFeatures
 
-}} // namespace flex::config
+} // namespace flex::config

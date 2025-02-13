@@ -26,7 +26,7 @@ namespace flex {
 	template <typename T>
 	constexpr auto is_allocator_v {is_allocator<T>::value};
 
-#ifdef FLEX_CONFIG_CPP_FEATURES_CONCEPTS
+#if defined(FLEX_CONFIG_CPP_FEATURES_CONCEPTS)
 	template <typename T>
 	concept allocator = flex::is_allocator_v<T>
 		&& flex::equality_comparable<T>
@@ -43,7 +43,7 @@ namespace flex {
 	template <typename T>
 	constexpr auto is_stateless_allocator_v {is_stateless_allocator<T>::value};
 
-#ifdef FLEX_CONFIG_CPP_FEATURES_CONCEPTS
+#if defined(FLEX_CONFIG_CPP_FEATURES_CONCEPTS)
 	template <typename T>
 	concept stateless_allocator = flex::is_stateless_allocator_v<T>
 		&& flex::allocator<T>;
@@ -56,7 +56,7 @@ namespace flex {
 	template <typename T>
 	constexpr auto is_statefull_allocator_v {is_statefull_allocator<T>::value};
 
-#ifdef FLEX_CONFIG_CPP_FEATURES_CONCEPTS
+#if defined(FLEX_CONFIG_CPP_FEATURES_CONCEPTS)
 	template <typename T>
 	concept statefull_allocator = flex::is_statefull_allocator_v<T>
 		&& flex::allocator<T>;
