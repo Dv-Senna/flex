@@ -1,43 +1,35 @@
 #pragma once
 
-#include <cstdint>
-#include <concepts>
-#include <memory>
+#include "flex/config.hpp"
+
+#include <type_traits>
 
 
 namespace flex {
 	struct Empty {};
 
-	template <typename T>
-	concept IsAllocator = requires(T alloc, std::size_t n) {
-		{*alloc.allocate(n)} -> std::same_as<typename T::value_type&>;
-		{alloc.deallocate(alloc.allocate(n), n)};
-	}
-		&& std::copy_constructible<T>
-		&& std::equality_comparable<T>;
+	template <typename T, typename = void>
+	struct is_equality_comparable : std::false_type {};
 
 	template <typename T>
-	concept IsStatelessAllocator = std::is_empty_v<T> && IsAllocator<T>;
+	struct is_equality_comparable<T,
+		std::void_t<decltype(std::declval<T> () == std::declval<T> ())>
+	> : std::true_type {};
 
 	template <typename T>
-	concept IsStatefullAllocator = !IsStatelessAllocator<T> && IsAllocator<T>;
+	constexpr auto is_equality_comparable_v {is_equality_comparable<T>::value};
 
-
+#ifdef FLEX_CONFIG_CPP_FEATURES_CONCEPTS
 	template <typename T>
-	struct AllocatorWrapper {
-		using Type = std::remove_cvref_t<T>;
+	concept equality_comparable = is_equality_comparable_v<T> && requires(const T val) {
+		{val == val};
 	};
-
-	template <IsStatelessAllocator T>
-	struct AllocatorWrapper<T> {
-		using Type = Empty;
-	};
+#endif // concepts
 
 	template <typename T>
-	using AllocatorWrapper_t = typename AllocatorWrapper<T>::Type;
+	constexpr auto true_v {std::true_type::value};
 
-	static_assert(IsAllocator<std::allocator<int>>);
-	static_assert(IsStatelessAllocator<std::allocator<int>>);
-	static_assert(!IsStatefullAllocator<std::allocator<int>>);
+	template <typename T>
+	constexpr auto false_v {std::true_type::value};
 
-} // namespace
+} // namespace flex

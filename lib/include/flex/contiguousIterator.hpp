@@ -39,7 +39,6 @@ namespace flex {
 			constexpr auto operator-=(difference_type value) noexcept -> ContiguousIterator<T, Cont>&;
 
 			constexpr auto operator+(difference_type value) const noexcept -> ContiguousIterator<T, Cont>;
-			friend constexpr auto operator+(difference_type value, ContiguousIterator<T, Cont> it) noexcept -> ContiguousIterator<T, Cont>;
 			constexpr auto operator-(difference_type value) const noexcept -> ContiguousIterator<T, Cont>;
 
 			constexpr auto operator-(const ContiguousIterator<T, Cont> &it) const noexcept -> difference_type;
@@ -56,6 +55,9 @@ namespace flex {
 			pointer m_ptr;
 			const Container *m_container;
 	};
+
+	template <typename T, typename Cont>
+	constexpr auto operator+(typename ContiguousIterator<T, Cont>::difference_type value, ContiguousIterator<T, Cont> it) noexcept -> ContiguousIterator<T, Cont>;
 
 
 	template <typename T, typename Cont>
@@ -91,7 +93,6 @@ namespace flex {
 			constexpr auto operator-=(difference_type value) noexcept -> ReverseContiguousIterator<T, Cont>&;
 
 			constexpr auto operator+(difference_type value) const noexcept -> ReverseContiguousIterator<T, Cont>;
-			friend constexpr auto operator+(difference_type value, ReverseContiguousIterator<T, Cont> it) noexcept -> ReverseContiguousIterator<T, Cont>;
 			constexpr auto operator-(difference_type value) const noexcept -> ReverseContiguousIterator<T, Cont>;
 
 			constexpr auto operator-(const ReverseContiguousIterator<T, Cont> &it) const noexcept -> difference_type;
@@ -108,6 +109,9 @@ namespace flex {
 			pointer m_ptr;
 			const Container *m_container;
 	};
+
+	template <typename T, typename Cont>
+	constexpr auto operator+(typename ReverseContiguousIterator<T, Cont>::difference_type value, ReverseContiguousIterator<T, Cont> it) noexcept -> ReverseContiguousIterator<T, Cont>;
 
 
 	static_assert(std::contiguous_iterator<ContiguousIterator<int, int>>);

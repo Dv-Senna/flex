@@ -41,4 +41,13 @@ namespace flex {
 		eRelease
 	};
 
+	enum class CppStandard {
+		e17,
+		e20,
+		e23
+	};
+
+	static_assert(flex::CppStandard::e23 > flex::CppStandard::e20);
+	static_assert(flex::CppStandard::e20 > flex::CppStandard::e17);
+
 } // namespace flex
