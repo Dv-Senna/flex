@@ -50,5 +50,22 @@ TEST_CASE("reflection", "[reflection]") {
 	std::println("Person<2> : '{}'", std::get<2> (flex::reflection_members_names_v<Person>));
 	std::println("Person<3> : '{}'", std::get<3> (flex::reflection_members_names_v<Person>));
 
-	REQUIRE(1 == 1);
+	Person person {};
+	flex::reflection_traits<Person>::getMember<0> (person) = "Albert";
+	flex::reflection_traits<Person>::getMember<1> (person) = "Einstein";
+	flex::reflection_traits<Person>::getMember<2> (person) = 76;
+	flex::reflection_traits<Address>::getMember<0> (flex::reflection_traits<Person>::getMember<3> (person)) = "Kramgasse";
+	flex::reflection_traits<Address>::getMember<1> (flex::reflection_traits<Person>::getMember<3> (person)) = 12;
+	flex::reflection_traits<Address>::getMember<2> (flex::reflection_traits<Person>::getMember<3> (person)) = 3000;
+	flex::reflection_traits<Address>::getMember<3> (flex::reflection_traits<Person>::getMember<3> (person)) = "Bern";
+	flex::reflection_traits<Address>::getMember<4> (flex::reflection_traits<Person>::getMember<3> (person)) = "Switzerland";
+
+	REQUIRE(person.name == "Albert");
+	REQUIRE(person.surname == "Einstein");
+	REQUIRE(person.age == 76);
+	REQUIRE(person.address.street == "Kramgasse");
+	REQUIRE(person.address.number == 12);
+	REQUIRE(person.address.postalCode == 3000);
+	REQUIRE(person.address.city == "Bern");
+	REQUIRE(person.address.country == "Switzerland");
 }

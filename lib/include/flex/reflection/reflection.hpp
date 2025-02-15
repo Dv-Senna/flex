@@ -22,6 +22,16 @@ namespace flex {
 		static constexpr std::size_t MEMBERS_COUNT {flex::reflection::aggregate_members_count_v<T>};
 		static constexpr std::tuple MEMBERS_NAMES {flex::reflection::aggregate_members_names_v<T>};
 		using MembersTypes = typename flex::reflection::aggregate_members_t<T>;
+
+		template <std::size_t N>
+		static constexpr auto getMember(T &instance) noexcept -> std::add_lvalue_reference_t<std::tuple_element_t<N, MembersTypes>> {
+			return std::get<N> (flex::reflection::makeAggregateMembersTuple(instance));
+		}
+
+		template <std::size_t N>
+		static constexpr auto getMember(const T &instance) noexcept -> std::add_lvalue_reference_t<std::add_const_t<std::tuple_element_t<N, MembersTypes>>> {
+			return std::get<N> (flex::reflection::makeAggregateMembersTuple(instance));
+		}
 	};
 
 
