@@ -17,6 +17,7 @@ endif()
 
 # options
 option(FLEX_BUILD_TESTS "FLEX_BUILD_TESTS" ${FLEX_DEFAULT_BUILD_TESTS})
+set(FLEX_REFLECTION_MAX_MEMBERS_COUNT 128)
 
 
 # subdirectories

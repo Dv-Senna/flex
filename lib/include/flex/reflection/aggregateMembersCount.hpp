@@ -7,9 +7,10 @@
 
 namespace flex::reflection {
 	template <typename S, typename ...Placeholders>
-	consteval auto getAggregateSize() noexcept -> std::size_t {
+	requires std::is_aggregate_v<S>
+	consteval auto getAggregateMembersCount() noexcept -> std::size_t {
 		if constexpr (flex::is_aggregate_constructible_v<S, Placeholders..., flex::AnyTypePlaceholder>)
-			return getAggregateSize<S, Placeholders..., flex::AnyTypePlaceholder> ();
+			return getAggregateMembersCount<S, Placeholders..., flex::AnyTypePlaceholder> ();
 		else
 			return sizeof...(Placeholders);
 	};

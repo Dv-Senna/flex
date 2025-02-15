@@ -1,5 +1,6 @@
-#include <flex/reflection/autoAggregateSize.hpp>
+#include <print>
 
+#include <flex/reflection/aggregate.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 struct Address {
@@ -18,10 +19,12 @@ struct Person {
 };
 
 
-static_assert(flex::reflection::getAggregateSize<Address> () == 5);
-static_assert(flex::reflection::getAggregateSize<Person> () == 4);
+static_assert(flex::reflection::getAggregateMembersCount<Address> () == 5);
+static_assert(flex::reflection::getAggregateMembersCount<Person> () == 4);
 
 
 TEST_CASE("reflection", "[reflection]") {
+	std::println("Person<0> : '{}'", flex::reflection::getAggregateMemberName<0, Person> ());
+
 	REQUIRE(1 == 1);
 }

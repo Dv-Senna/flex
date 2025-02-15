@@ -1,13 +1,39 @@
 cmake_minimum_required(VERSION 3.21)
 
 
+# find python3 interpreter
+find_package(Python3 COMPONENTS Interpreter)
+if (NOT ${Python3_FOUND})
+	message(FATAL_ERROR "You need a python3 interpreter to be able to build this project")
+endif()
+
+# autogen files config
+set(FLEX_LIBRARY_SCRIPTS_DIR ${PROJECT_SOURCE_DIR}/scripts)
+set(FLEX_LIBRARY_AUTOGEN_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/include)
+
+set(FLEX_LIBRARY_AGGREGATE_MEMBERS_TUPLE_SCRIPTS ${FLEX_LIBRARY_SCRIPTS_DIR}/aggregate_members_tuple.py)
+set(FLEX_LIBRARY_AGGREGATE_MEMBERS_TUPLE_HEADER ${FLEX_LIBRARY_AUTOGEN_INCLUDE_DIR}/flex/reflection/autogen/aggregateMembersTuple.hpp)
+
+add_custom_target(flex_interface_autogen ALL DEPENDS
+	${FLEX_LIBRARY_AGGREGATE_MEMBERS_TUPLE_HEADER}
+)
+
+# aggregate members tuple
+add_custom_command(
+	OUTPUT ${FLEX_LIBRARY_AGGREGATE_MEMBERS_TUPLE_HEADER}
+	COMMAND ${Python3_EXECUTABLE} ${FLEX_LIBRARY_AGGREGATE_MEMBERS_TUPLE_SCRIPTS} ${FLEX_LIBRARY_AGGREGATE_MEMBERS_TUPLE_HEADER} ${FLEX_REFLECTION_MAX_MEMBERS_COUNT}
+	DEPENDS ${FLEX_LIBRARY_AGGREGATE_MEMBERS_TUPLE_SCRIPTS}
+)
+
+
+# library interface itself
 file(GLOB_RECURSE FLEX_LIBRARY_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/include/*.cpp)
 file(GLOB_RECURSE FLEX_LIBRARY_INLINE ${CMAKE_CURRENT_SOURCE_DIR}/include/*.inl)
 
 add_library(flex_interface INTERFACE ${FLEX_LIBRARY_HEADER} ${FLEX_LIBRARY_INLINE})
 add_library(flex::flex ALIAS flex_interface)
 set_property(TARGET flex_interface PROPERTY CXX_STANDARD ${FIPPER_CPP_DIALECT})
-
+add_dependencies(flex_interface flex_interface_autogen)
 
 target_compile_definitions(flex_interface INTERFACE
 	__FLEX_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
@@ -15,4 +41,5 @@ target_compile_definitions(flex_interface INTERFACE
 	__FLEX_VERSION_PATCH=${PROJECT_VERSION_PATCH}
 )
 
-target_include_directories(flex_interface INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(flex_interface INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include ${FLEX_LIBRARY_AUTOGEN_INCLUDE_DIR})
+
