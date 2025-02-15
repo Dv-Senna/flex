@@ -12,20 +12,34 @@ namespace flex {
 	template <typename T>
 	struct reflection_traits {
 		using type = T;
-		static constexpr bool HAS_REFLECTION {false};
+		static constexpr bool IS_REFLECTABLE {false};
 	};
 
 	template <flex::aggregate T>
 	struct reflection_traits<T> {
 		using type = T;
-		static constexpr bool HAS_REFLECTION {true};
+		static constexpr bool IS_REFLECTABLE {true};
 		static constexpr std::size_t MEMBERS_COUNT {flex::reflection::aggregate_members_count_v<T>};
 		static constexpr std::tuple MEMBERS_NAMES {flex::reflection::aggregate_members_names_v<T>};
 		using MembersTypes = typename flex::reflection::aggregate_members_t<T>;
 	};
 
 
+
 	template <typename T>
-	concept reflectable = flex::reflection_traits<T>::HAS_REFLECTION;
+	constexpr auto is_reflectable_v = reflection_traits<T>::IS_REFLECTABLE;
+
+	template <typename T>
+	concept reflectable = flex::is_reflectable_v<T>;
+
+
+	template <reflectable T>
+	constexpr auto reflection_members_count_v = reflection_traits<T>::MEMBERS_COUNT;
+
+	template <reflectable T>
+	constexpr auto reflection_members_names_v = reflection_traits<T>::MEMBERS_NAMES;
+
+	template <reflectable T>
+	using reflection_members_t = typename reflection_traits<T>::MembersTypes;
 
 } // namespace flex

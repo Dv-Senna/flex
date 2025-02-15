@@ -18,37 +18,37 @@ struct Person {
 	Address address;
 };
 
-static_assert(flex::reflection_traits<Person>::HAS_REFLECTION);
-static_assert(flex::reflection_traits<Person>::MEMBERS_COUNT == 4);
-static_assert(std::get<0> (flex::reflection_traits<Person>::MEMBERS_NAMES) == "name");
-static_assert(std::get<1> (flex::reflection_traits<Person>::MEMBERS_NAMES) == "surname");
-static_assert(std::get<2> (flex::reflection_traits<Person>::MEMBERS_NAMES) == "age");
-static_assert(std::get<3> (flex::reflection_traits<Person>::MEMBERS_NAMES) == "address");
-static_assert(std::is_same_v<flex::reflection_traits<Person>::MembersTypes, std::tuple<std::string, std::string, int, Address>>);
+static_assert(flex::is_reflectable_v<Person>);
+static_assert(flex::reflection_members_count_v<Person> == 4);
+static_assert(std::get<0> (flex::reflection_members_names_v<Person>) == "name");
+static_assert(std::get<1> (flex::reflection_members_names_v<Person>) == "surname");
+static_assert(std::get<2> (flex::reflection_members_names_v<Person>) == "age");
+static_assert(std::get<3> (flex::reflection_members_names_v<Person>) == "address");
+static_assert(std::is_same_v<flex::reflection_members_t<Person>, std::tuple<std::string, std::string, int, Address>>);
 
-static_assert(flex::reflection_traits<Address>::HAS_REFLECTION);
-static_assert(flex::reflection_traits<Address>::MEMBERS_COUNT == 5);
-static_assert(std::get<0> (flex::reflection_traits<Address>::MEMBERS_NAMES) == "street");
-static_assert(std::get<1> (flex::reflection_traits<Address>::MEMBERS_NAMES) == "number");
-static_assert(std::get<2> (flex::reflection_traits<Address>::MEMBERS_NAMES) == "postalCode");
-static_assert(std::get<3> (flex::reflection_traits<Address>::MEMBERS_NAMES) == "city");
-static_assert(std::get<4> (flex::reflection_traits<Address>::MEMBERS_NAMES) == "country");
-static_assert(std::is_same_v<flex::reflection_traits<Address>::MembersTypes, std::tuple<std::string, int, int, std::string, std::string>>);
+static_assert(flex::is_reflectable_v<Address>);
+static_assert(flex::reflection_members_count_v<Address> == 5);
+static_assert(std::get<0> (flex::reflection_members_names_v<Address>) == "street");
+static_assert(std::get<1> (flex::reflection_members_names_v<Address>) == "number");
+static_assert(std::get<2> (flex::reflection_members_names_v<Address>) == "postalCode");
+static_assert(std::get<3> (flex::reflection_members_names_v<Address>) == "city");
+static_assert(std::get<4> (flex::reflection_members_names_v<Address>) == "country");
+static_assert(std::is_same_v<flex::reflection_members_t<Address>, std::tuple<std::string, int, int, std::string, std::string>>);
 
 
 
 
 TEST_CASE("reflection", "[reflection]") {
-	std::println("Address<0> : '{}'", std::get<0> (flex::reflection_traits<Address>::MEMBERS_NAMES));
-	std::println("Address<1> : '{}'", std::get<1> (flex::reflection_traits<Address>::MEMBERS_NAMES));
-	std::println("Address<2> : '{}'", std::get<2> (flex::reflection_traits<Address>::MEMBERS_NAMES));
-	std::println("Address<3> : '{}'", std::get<3> (flex::reflection_traits<Address>::MEMBERS_NAMES));
-	std::println("Address<4> : '{}'", std::get<4> (flex::reflection_traits<Address>::MEMBERS_NAMES));
+	std::println("Address<0> : '{}'", std::get<0> (flex::reflection_members_names_v<Address>));
+	std::println("Address<1> : '{}'", std::get<1> (flex::reflection_members_names_v<Address>));
+	std::println("Address<2> : '{}'", std::get<2> (flex::reflection_members_names_v<Address>));
+	std::println("Address<3> : '{}'", std::get<3> (flex::reflection_members_names_v<Address>));
+	std::println("Address<4> : '{}'", std::get<4> (flex::reflection_members_names_v<Address>));
 
-	std::println("Person<0> : '{}'", std::get<0> (flex::reflection_traits<Person>::MEMBERS_NAMES));
-	std::println("Person<1> : '{}'", std::get<1> (flex::reflection_traits<Person>::MEMBERS_NAMES));
-	std::println("Person<2> : '{}'", std::get<2> (flex::reflection_traits<Person>::MEMBERS_NAMES));
-	std::println("Person<3> : '{}'", std::get<3> (flex::reflection_traits<Person>::MEMBERS_NAMES));
+	std::println("Person<0> : '{}'", std::get<0> (flex::reflection_members_names_v<Person>));
+	std::println("Person<1> : '{}'", std::get<1> (flex::reflection_members_names_v<Person>));
+	std::println("Person<2> : '{}'", std::get<2> (flex::reflection_members_names_v<Person>));
+	std::println("Person<3> : '{}'", std::get<3> (flex::reflection_members_names_v<Person>));
 
 	REQUIRE(1 == 1);
 }
