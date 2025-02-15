@@ -5,6 +5,7 @@
 #include <string_view>
 
 #include "flex/reflection/autogen/aggregateMembersTuple.hpp"
+#include "flex/reflection/aggregateMembersCount.hpp"
 
 
 namespace flex::reflection {
@@ -24,7 +25,7 @@ namespace flex::reflection {
 
 		template <std::size_t N, typename S>
 		consteval auto makePointer() noexcept {
-			auto &member {std::get<0> (flex::reflection::makeAggregateMembersTuple(fakeObject<S>))};
+			auto &member {std::get<N> (flex::reflection::makeAggregateMembersTuple(fakeObject<S>))};
 			return PointerWrapper<std::remove_reference_t<decltype(member)>> {&member};
 		}
 
@@ -47,6 +48,7 @@ namespace flex::reflection {
 	} // namespace __internals
 
 	template <std::size_t N, typename S>
+	requires (N < flex::reflection::getAggregateMembersCount<S> ())
 	consteval auto getAggregateMemberName() noexcept -> std::string_view {
 	#ifdef __clang__
 		#pragma clang diagnostic push
