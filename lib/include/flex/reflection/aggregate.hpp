@@ -31,7 +31,7 @@ namespace flex::reflection {
 			return PointerWrapper<std::remove_reference_t<decltype(member)>> {&member};
 		}
 
-		consteval auto nameStripper(std::string_view name) noexcept -> std::string_view {
+		consteval auto stripAggregateName(std::string_view name) noexcept -> std::string_view {
 			using namespace std::string_view_literals;
 		#ifdef __clang__
 			name = {name.begin() + name.find("fakeObject.") + "fakeObject."sv.size(), name.end()};
@@ -56,7 +56,7 @@ namespace flex::reflection {
 		#pragma clang diagnostic push
 		#pragma clang diagnostic ignored "-Wundefined-var-template"
 	#endif
-		return __internals::nameStripper(__internals::nameGiverFunction<__internals::makePointer<N, T> ()> ());
+		return __internals::stripAggregateName(__internals::nameGiverFunction<__internals::makePointer<N, T> ()> ());
 	#ifdef __clang__
 		#pragma clang diagnostic pop
 	#endif

@@ -9,6 +9,16 @@ struct Address {
 	int postalCode;
 	std::string city;
 	std::string country;
+
+	struct FlexMetadata {
+		static constexpr std::tuple MEMBERS {
+			&Address::street,
+			std::pair{"streetNumber", &Address::number},
+			&Address::city,
+			&Address::postalCode,
+			&Address::country
+		};
+	};
 };
 
 struct Person {
@@ -29,11 +39,11 @@ static_assert(std::is_same_v<flex::reflection_members_t<Person>, std::tuple<std:
 static_assert(flex::is_reflectable_v<Address>);
 static_assert(flex::reflection_members_count_v<Address> == 5);
 static_assert(std::get<0> (flex::reflection_members_names_v<Address>) == "street");
-static_assert(std::get<1> (flex::reflection_members_names_v<Address>) == "number");
-static_assert(std::get<2> (flex::reflection_members_names_v<Address>) == "postalCode");
-static_assert(std::get<3> (flex::reflection_members_names_v<Address>) == "city");
+static_assert(std::get<1> (flex::reflection_members_names_v<Address>) == "streetNumber");
+static_assert(std::get<2> (flex::reflection_members_names_v<Address>) == "city");
+static_assert(std::get<3> (flex::reflection_members_names_v<Address>) == "postalCode");
 static_assert(std::get<4> (flex::reflection_members_names_v<Address>) == "country");
-static_assert(std::is_same_v<flex::reflection_members_t<Address>, std::tuple<std::string, int, int, std::string, std::string>>);
+static_assert(std::is_same_v<flex::reflection_members_t<Address>, std::tuple<std::string, int, std::string, int, std::string>>);
 
 
 
@@ -56,8 +66,8 @@ TEST_CASE("reflection", "[reflection]") {
 	flex::reflection_traits<Person>::getMember<2> (person) = 76;
 	flex::reflection_traits<Address>::getMember<0> (flex::reflection_traits<Person>::getMember<3> (person)) = "Kramgasse";
 	flex::reflection_traits<Address>::getMember<1> (flex::reflection_traits<Person>::getMember<3> (person)) = 12;
-	flex::reflection_traits<Address>::getMember<2> (flex::reflection_traits<Person>::getMember<3> (person)) = 3000;
-	flex::reflection_traits<Address>::getMember<3> (flex::reflection_traits<Person>::getMember<3> (person)) = "Bern";
+	flex::reflection_traits<Address>::getMember<2> (flex::reflection_traits<Person>::getMember<3> (person)) = "Bern";
+	flex::reflection_traits<Address>::getMember<3> (flex::reflection_traits<Person>::getMember<3> (person)) = 3000;
 	flex::reflection_traits<Address>::getMember<4> (flex::reflection_traits<Person>::getMember<3> (person)) = "Switzerland";
 
 	REQUIRE(person.name == "Albert");

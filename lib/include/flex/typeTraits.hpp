@@ -12,6 +12,12 @@ namespace flex{
 
 	struct Empty {};
 
+	template <typename T>
+	constexpr bool true_v = true;
+
+	template <typename T>
+	constexpr bool false_v = false;
+
 
 	template <typename T, typename = void, typename ...Args>
 	struct is_aggregate_constructible : std::false_type {};
@@ -44,5 +50,45 @@ namespace flex{
 
 	template <typename T>
 	using remove_tuple_reference_t = typename remove_tuple_reference<T>::type;
+
+
+	template <typename T>
+	struct is_tuple : std::false_type {};
+
+	template <typename ...Args>
+	struct is_tuple<std::tuple<Args...>> : std::true_type {};
+
+	template <typename T>
+	constexpr auto is_tuple_v = is_tuple<T>::value;
+
+	template <typename T>
+	concept tuple = is_tuple_v<T>;
+
+
+	template <typename T>
+	struct is_pair : std::false_type {};
+
+	template <typename First, typename Second>
+	struct is_pair<std::pair<First, Second>> : std::true_type {};
+
+	template <typename T>
+	constexpr auto is_pair_v = is_pair<T>::value;
+
+	template <typename T>
+	concept pair = is_pair_v<T>;
+
+
+	template <typename T>
+	struct member_pointer_extractor {
+		using type = T;
+	};
+
+	template <typename S, typename T>
+	struct member_pointer_extractor<T S::*> {
+		using type = T;
+	};
+
+	template <typename T>
+	using member_pointer_extractor_t = typename member_pointer_extractor<T>::type;
 
 } // namespace flex
