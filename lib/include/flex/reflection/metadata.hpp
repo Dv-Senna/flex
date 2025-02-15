@@ -58,6 +58,28 @@ namespace flex::reflection {
 			return name;
 		};
 
+
+		template <flex::tuple T, std::size_t N = 0, typename = void>
+		requires (N < std::tuple_size_v<T>)
+		struct name_index_from_tuple : name_index_from_tuple<T, N+1> {};
+
+		template <flex::tuple T, std::size_t N>
+		struct name_index_from_tuple<T, N,
+			std::enable_if_t<
+				flex::is_string_v<std::tuple_element_t<N, T>>
+			, void>
+		> : std::integral_constant<std::size_t, N> {};
+
+		template <flex::tuple T>
+		constexpr auto name_index_from_tuple_v = name_index_from_tuple<T>::value;
+
+		template <std::size_t N, custom T>
+		constexpr auto name_index_from_field_v = name_index_from_tuple_v<custom_member_metadata_field_t<N, T>>;
+
+
+		template <std::size_t N, custom T>
+		constexpr auto member_index_from_field_v = 1 - name_index_from_field_v<N, T>;
+
 	} // namespace __internals
 
 
@@ -71,11 +93,11 @@ namespace flex::reflection {
 	template <std::size_t N, custom T>
 	struct custom_member_name<N, T,
 		std::enable_if_t<
-			flex::is_pair_v<custom_member_metadata_field_t<N, T>>
+			flex::is_tuple_v<custom_member_metadata_field_t<N, T>>
 		, void>
 	> {
 		using value_type = std::string_view;
-		static constexpr value_type value {custom_member_metadata_field_v<N, T>.first};
+		static constexpr value_type value {std::get<__internals::name_index_from_field_v<N, T>> (custom_member_metadata_field_v<N, T>)};
 	};
 
 	template <std::size_t N, custom T>
@@ -109,10 +131,10 @@ namespace flex::reflection {
 	template <std::size_t N, custom T>
 	struct custom_member<N, T,
 		std::enable_if_t<
-			flex::is_pair_v<custom_member_metadata_field_t<N, T>>
+			flex::is_tuple_v<custom_member_metadata_field_t<N, T>>
 		, void>
 	> {
-		using type = flex::member_pointer_extractor_t<std::remove_cvref_t<std::tuple_element_t<1, custom_member_metadata_field_t<N, T>>>>;
+		using type = flex::member_pointer_extractor_t<std::remove_cvref_t<std::tuple_element_t<__internals::member_index_from_field_v<N, T>, custom_member_metadata_field_t<N, T>>>>;
 	};
 
 	template <std::size_t N, custom T>
@@ -145,10 +167,10 @@ namespace flex::reflection {
 	template <std::size_t N, custom T>
 	struct custom_member_pointer<N, T,
 		std::enable_if_t<
-			flex::is_pair_v<custom_member_metadata_field_t<N, T>>
+			flex::is_tuple_v<custom_member_metadata_field_t<N, T>>
 		, void>
 	> {
-		static constexpr auto value {custom_member_metadata_field_v<N, T>.second};
+		static constexpr auto value {std::get<__internals::member_index_from_field_v<N, T>> (custom_member_metadata_field_v<N, T>)};
 		using value_type = decltype(value);
 	};
 

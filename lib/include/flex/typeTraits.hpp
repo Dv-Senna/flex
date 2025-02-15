@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+#include <string_view>
 #include <tuple>
 #include <type_traits>
 
@@ -90,5 +92,39 @@ namespace flex{
 
 	template <typename T>
 	using member_pointer_extractor_t = typename member_pointer_extractor<T>::type;
+
+
+	template <typename T>
+	struct remove_pointer_or_extent {
+		using type = T;
+	};
+
+	template <typename T>
+	struct remove_pointer_or_extent<T*> {
+		using type = T;
+	};
+
+	template <typename T>
+	struct remove_pointer_or_extent<T[]> {
+		using type = T;
+	};
+
+	template <typename T, std::size_t N>
+	struct remove_pointer_or_extent<T[N]> {
+		using type = T;
+	};
+
+	template <typename T>
+	using remove_pointer_or_extent_t = typename remove_pointer_or_extent<T>::type;
+
+
+	template <typename T>
+	constexpr auto is_string_v = std::is_same_v<T, std::string_view>
+		|| std::is_same_v<T, std::string>
+		|| (std::is_array_v<T> && std::is_same_v<std::remove_const_t<std::remove_extent_t<T>>, char>)
+		|| (std::is_pointer_v<T> && std::is_same_v<std::remove_const_t<std::remove_pointer_t<T>>, char>);
+
+	template <typename T>
+	concept string = is_string_v<T>;
 
 } // namespace flex

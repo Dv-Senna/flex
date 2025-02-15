@@ -10,10 +10,11 @@ struct Address {
 	std::string city;
 	std::string country;
 
+public:
 	struct FlexMetadata {
 		static constexpr std::tuple MEMBERS {
 			&Address::street,
-			std::pair{"streetNumber", &Address::number},
+			std::tuple{"streetNumber", &Address::number},
 			&Address::city,
 			&Address::postalCode,
 			&Address::country
@@ -26,6 +27,7 @@ struct Person {
 	std::string surname;
 	int age;
 	Address address;
+	auto test() -> void {}
 };
 
 static_assert(flex::is_reflectable_v<Person>);
@@ -44,7 +46,6 @@ static_assert(std::get<2> (flex::reflection_members_names_v<Address>) == "city")
 static_assert(std::get<3> (flex::reflection_members_names_v<Address>) == "postalCode");
 static_assert(std::get<4> (flex::reflection_members_names_v<Address>) == "country");
 static_assert(std::is_same_v<flex::reflection_members_t<Address>, std::tuple<std::string, int, std::string, int, std::string>>);
-
 
 
 
