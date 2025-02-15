@@ -1,17 +1,19 @@
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <source_location>
 #include <string_view>
 
 #include "flex/reflection/autogen/aggregateMembersTuple.hpp"
 #include "flex/reflection/aggregateMembersCount.hpp"
+#include "flex/typeTraits.hpp"
 
 
 namespace flex::reflection {
 	namespace __internals {
-		template <typename T>
-		extern const T fakeObject;
+		template <flex::aggregate T>
+		extern T fakeObject;
 
 		template <auto ptr>
 		consteval auto nameGiverFunction() noexcept -> std::string_view {
@@ -23,9 +25,9 @@ namespace flex::reflection {
 			T *ptr;
 		};
 
-		template <std::size_t N, typename S>
+		template <std::size_t N, flex::aggregate T>
 		consteval auto makePointer() noexcept {
-			auto &member {std::get<N> (flex::reflection::makeAggregateMembersTuple(fakeObject<S>))};
+			auto &member {std::get<N> (flex::reflection::makeAggregateMembersTuple(fakeObject<T>))};
 			return PointerWrapper<std::remove_reference_t<decltype(member)>> {&member};
 		}
 
@@ -47,17 +49,45 @@ namespace flex::reflection {
 
 	} // namespace __internals
 
-	template <std::size_t N, typename S>
-	requires (N < flex::reflection::getAggregateMembersCount<S> ())
+	template <std::size_t N, flex::aggregate T>
+	requires (N < flex::reflection::aggregate_members_count_v<T>)
 	consteval auto getAggregateMemberName() noexcept -> std::string_view {
 	#ifdef __clang__
 		#pragma clang diagnostic push
 		#pragma clang diagnostic ignored "-Wundefined-var-template"
 	#endif
-		return __internals::nameStripper(__internals::nameGiverFunction<__internals::makePointer<N, S> ()> ());
+		return __internals::nameStripper(__internals::nameGiverFunction<__internals::makePointer<N, T> ()> ());
 	#ifdef __clang__
 		#pragma clang diagnostic pop
 	#endif
 	};
+
+
+	template <flex::aggregate T, std::size_t N = 0, std::size_t COUNT = flex::reflection::aggregate_members_count_v<T>>
+	struct aggregate_members_names {
+		static constexpr std::tuple value {std::tuple_cat(
+			std::make_tuple(getAggregateMemberName<N, T> ()),
+			aggregate_members_names<T, N+1, COUNT>::value
+		)};
+		using value_type = decltype(value);
+	};
+
+	template <flex::aggregate T, std::size_t COUNT>
+	struct aggregate_members_names<T, COUNT, COUNT> {
+		using value_type = std::tuple<>;
+		static constexpr std::tuple<> value {};
+	};
+
+	template <flex::aggregate T>
+	constexpr auto aggregate_members_names_v = aggregate_members_names<T>::value;
+
+
+	template <flex::aggregate T>
+	struct aggregate_members {
+		using type = flex::remove_tuple_reference_t<decltype(flex::reflection::makeAggregateMembersTuple(flex::reflection::__internals::fakeObject<T>))>;
+	};
+
+	template <flex::aggregate T>
+	using aggregate_members_t = typename aggregate_members<T>::type;
 
 } // namespace flex::reflection

@@ -20,10 +20,9 @@ content += "#include \"flex/reflection/aggregateMembersCount.hpp\"\n\n\n"
 content += f"#define FLEX_REFLECTION_MAX_AGGREGATE_MEMBERS_COUNT {amount - 1}\n\n"
 
 content += "namespace flex::reflection {\n"
-content += "\ttemplate <typename S>\n"
-content += "\trequires std::is_aggregate_v<S>\n"
-content += "\tconstexpr auto makeAggregateMembersTuple(const S &value) {\n"
-content += "\t\tconstexpr std::size_t size {flex::reflection::getAggregateMembersCount<S> ()};\n"
+content += "\ttemplate <flex::aggregate T>\n"
+content += "\tconstexpr auto makeAggregateMembersTuple(const T &value) {\n"
+content += "\t\tconstexpr std::size_t size {flex::reflection::aggregate_members_count_v<T>};\n"
 for val in range(1, amount):
     args = ",".join([f"m{i}" for i in range(0, val)])
     content += f"\t\tif constexpr (size == {val})" + " {\n"
@@ -33,10 +32,9 @@ for val in range(1, amount):
 content += "\t}\n\n\n"
 
 
-content += "\ttemplate <typename S>\n"
-content += "\trequires std::is_aggregate_v<S>\n"
-content += "\tconstexpr auto makeAggregateMembersTuple(S &value) {\n"
-content += "\t\tconstexpr std::size_t size {flex::reflection::getAggregateMembersCount<S> ()};\n"
+content += "\ttemplate <flex::aggregate T>\n"
+content += "\tconstexpr auto makeAggregateMembersTuple(T &value) {\n"
+content += "\t\tconstexpr std::size_t size {flex::reflection::aggregate_members_count_v<T>};\n"
 for val in range(1, amount):
     args = ",".join([f"m{i}" for i in range(0, val)])
     content += f"\t\tif constexpr (size == {val})" + " {\n"
