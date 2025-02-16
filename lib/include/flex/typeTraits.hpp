@@ -1,5 +1,6 @@
 #pragma once
 
+#include <limits>
 #include <string>
 #include <string_view>
 #include <tuple>
@@ -68,6 +69,20 @@ namespace flex{
 	concept tuple = is_tuple_v<T>;
 
 
+	template <typename T, typename = void>
+	struct sfinae_tuple_size : std::integral_constant<std::size_t, std::numeric_limits<std::size_t>::max()> {};
+
+	template <typename T>
+	struct sfinae_tuple_size<T,
+		std::enable_if_t<
+			is_tuple_v<T>
+		, void>
+	> : std::integral_constant<std::size_t, std::tuple_size_v<T>> {};
+
+	template <typename T>
+	constexpr auto sfinae_tuple_size_v = sfinae_tuple_size<T>::value;
+
+
 	template <typename T>
 	struct is_pair : std::false_type {};
 
@@ -82,6 +97,30 @@ namespace flex{
 
 
 	template <typename T>
+	struct remove_member_function_pointer_const_noexcept {
+		using type = T;
+	};
+
+	template <typename S, typename Ret, typename ...Args>
+	struct remove_member_function_pointer_const_noexcept<Ret (S::*)(Args...) noexcept> {
+		using type = Ret (S::*)(Args...);
+	};
+
+	template <typename S, typename Ret, typename ...Args>
+	struct remove_member_function_pointer_const_noexcept<Ret (S::*)(Args...) const> {
+		using type = Ret (S::*)(Args...);
+	};
+
+	template <typename S, typename Ret, typename ...Args>
+	struct remove_member_function_pointer_const_noexcept<Ret (S::*)(Args...) const noexcept> {
+		using type = Ret (S::*)(Args...);
+	};
+
+	template <typename T>
+	using remove_member_function_pointer_const_noexcept_t = typename remove_member_function_pointer_const_noexcept<T>::type;
+
+
+	template <typename T>
 	struct member_pointer_extractor {
 		using type = T;
 	};
@@ -89,6 +128,26 @@ namespace flex{
 	template <typename S, typename T>
 	struct member_pointer_extractor<T S::*> {
 		using type = T;
+	};
+
+	template <typename S, typename Ret, typename ...Args>
+	struct member_pointer_extractor<Ret (S::*)(Args...)> {
+		using type = Ret (*)(Args...);
+	};
+
+	template <typename S, typename Ret, typename ...Args>
+	struct member_pointer_extractor<Ret (S::*)(Args...) const> {
+		using type = Ret (*)(Args...);
+	};
+
+	template <typename S, typename Ret, typename ...Args>
+	struct member_pointer_extractor<Ret (S::*)(Args...) noexcept> {
+		using type = Ret (*)(Args...) noexcept;
+	};
+
+	template <typename S, typename Ret, typename ...Args>
+	struct member_pointer_extractor<Ret (S::*)(Args...) const noexcept> {
+		using type = Ret (*)(Args...) noexcept;
 	};
 
 	template <typename T>
@@ -117,6 +176,49 @@ namespace flex{
 
 	template <typename T>
 	using remove_pointer_or_extent_t = typename remove_pointer_or_extent<T>::type;
+
+
+	template <bool COND, typename T>
+	struct if_add_const {
+		using type = T;
+	};
+
+	template <typename T>
+	struct if_add_const<true, T> {
+		using type = std::add_const_t<T>;
+	};
+
+	template <bool COND, typename T>
+	using if_add_const_t = typename if_add_const<COND, T>::type;
+
+
+	template <typename T>
+	struct remove_function_parameter_cvref {
+		using type = T;
+	};
+
+	template <typename Ret, typename ...Args>
+	struct remove_function_parameter_cvref<Ret(Args...)> {
+		using type = Ret(std::remove_cvref_t<Args>...);
+	};
+
+	template <typename Ret, typename ...Args>
+	struct remove_function_parameter_cvref<Ret(Args...) noexcept> {
+		using type = Ret(std::remove_cvref_t<Args>...) noexcept;
+	};
+
+	template <typename Ret, typename ...Args>
+	struct remove_function_parameter_cvref<Ret (*)(Args...)> {
+		using type = Ret(*)(std::remove_cvref_t<Args>...);
+	};
+
+	template <typename Ret, typename ...Args>
+	struct remove_function_parameter_cvref<Ret (*)(Args...) noexcept> {
+		using type = Ret(*)(std::remove_cvref_t<Args>...) noexcept;
+	};
+
+	template <typename T>
+	using remove_function_parameter_cvref_t = typename remove_function_parameter_cvref<T>::type;
 
 
 	template <typename T>

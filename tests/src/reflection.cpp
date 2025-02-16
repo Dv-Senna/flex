@@ -8,7 +8,12 @@ struct Address {
 	int number;
 	int postalCode;
 	std::string city;
-	std::string country;
+
+	constexpr auto getCountry() const noexcept -> const std::string& {return m_country;}
+	constexpr auto setCountry(const std::string &value) noexcept -> void {m_country = value;}
+
+private:
+	std::string m_country;
 
 public:
 	struct FlexMetadata {
@@ -17,7 +22,7 @@ public:
 			std::tuple{"streetNumber", &Address::number},
 			&Address::city,
 			&Address::postalCode,
-			&Address::country
+			std::tuple{"country", &Address::getCountry, &Address::setCountry}
 		};
 	};
 };
@@ -29,6 +34,7 @@ struct Person {
 	Address address;
 	auto test() -> void {}
 };
+
 
 static_assert(flex::is_reflectable_v<Person>);
 static_assert(flex::reflection_members_count_v<Person> == 4);
@@ -78,5 +84,5 @@ TEST_CASE("reflection", "[reflection]") {
 	REQUIRE(person.address.number == 12);
 	REQUIRE(person.address.postalCode == 3000);
 	REQUIRE(person.address.city == "Bern");
-	REQUIRE(person.address.country == "Switzerland");
+	REQUIRE(person.address.getCountry() == "Switzerland");
 }

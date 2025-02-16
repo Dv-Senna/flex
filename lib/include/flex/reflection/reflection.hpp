@@ -53,12 +53,18 @@ namespace flex {
 
 		template <std::size_t N>
 		static constexpr auto getMember(std::add_lvalue_reference_t<type> instance) noexcept -> flex::reflection::custom_member_access_t<N, type, false> {
-			return instance.*flex::reflection::custom_member_pointer_v<N, type>;
+			if constexpr (flex::reflection::is_custom_member_getter_setter_v<N, type>)
+				return flex::reflection::custom_member_access_t<N, type, false> {instance};
+			else
+				return instance.*flex::reflection::custom_member_pointer_v<N, type>;
 		}
 
 		template <std::size_t N>
 		static constexpr auto getMember(std::add_lvalue_reference_t<std::add_const_t<type>> instance) noexcept -> flex::reflection::custom_member_access_t<N, type, true> {
-			return instance.*flex::reflection::custom_member_pointer_v<N, type>;
+			if constexpr (flex::reflection::is_custom_member_getter_setter_v<N, type>)
+				return flex::reflection::custom_member_access_t<N, type, true> {instance};
+			else
+				return instance.*flex::reflection::custom_member_pointer_v<N, type>;
 		}
 	};
 
