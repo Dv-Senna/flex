@@ -9,8 +9,6 @@
 
 
 namespace flex {
-
-
 	template <typename T>
 	constexpr auto is_autogen_reflection_v = std::is_aggregate_v<T> && !flex::reflection::custom<T>;
 
@@ -54,14 +52,12 @@ namespace flex {
 		using MembersTypes = flex::reflection::custom_members_t<type>;
 
 		template <std::size_t N>
-		static constexpr auto getMember(std::add_lvalue_reference_t<type> instance) noexcept
-			-> std::add_lvalue_reference_t<std::tuple_element_t<N, MembersTypes>> {
+		static constexpr auto getMember(std::add_lvalue_reference_t<type> instance) noexcept -> flex::reflection::custom_member_access_t<N, type, false> {
 			return instance.*flex::reflection::custom_member_pointer_v<N, type>;
 		}
 
 		template <std::size_t N>
-		static constexpr auto getMember(std::add_lvalue_reference_t<std::add_const_t<type>> instance) noexcept
-			-> std::add_lvalue_reference_t<std::add_const_t<std::tuple_element_t<N, MembersTypes>>> {
+		static constexpr auto getMember(std::add_lvalue_reference_t<std::add_const_t<type>> instance) noexcept -> flex::reflection::custom_member_access_t<N, type, true> {
 			return instance.*flex::reflection::custom_member_pointer_v<N, type>;
 		}
 	};

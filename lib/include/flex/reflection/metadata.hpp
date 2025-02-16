@@ -177,4 +177,18 @@ namespace flex::reflection {
 	template <std::size_t N, custom T>
 	constexpr auto custom_member_pointer_v = custom_member_pointer<N, T>::value;
 
+
+	template <std::size_t N, custom T, bool CONSTANT>
+	struct custom_member_access {
+		using type = std::add_lvalue_reference_t<std::tuple_element_t<N, custom_members_t<T>>>;
+	};
+
+	template <std::size_t N, custom T>
+	struct custom_member_access<N, T, true> {
+		using type = std::add_lvalue_reference_t<std::add_const_t<std::tuple_element_t<N, custom_members_t<T>>>>;
+	};
+
+	template <std::size_t N, custom T, bool CONSTANT>
+	using custom_member_access_t = typename custom_member_access<N, T, CONSTANT>::type;
+
 } // namespace flex::reflection

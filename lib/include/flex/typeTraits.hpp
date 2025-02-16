@@ -14,6 +14,7 @@ namespace flex{
 
 	struct Empty {};
 
+
 	template <typename T>
 	constexpr bool true_v = true;
 
