@@ -5,14 +5,123 @@
 #include <cstdio>
 #include <format>
 #include <iomanip>
+#include <iostream>
 #include <optional>
-#include <ranges>
 #include <sstream>
 
 #include "flex/reflection/reflection.hpp"
 
 
 namespace flex {
+	enum class LogLevel {
+		eVerbose,
+		eInfo,
+		eWarning,
+		eError,
+		eFatal
+	};
+
+	class Logger {
+		using FormatStringType = std::format_string<const std::string&, std::string&, std::string&, const std::string&>;
+
+		public:
+			Logger() noexcept = delete;
+			Logger(const Logger&) noexcept = delete;
+			auto operator=(const Logger&) noexcept -> Logger& = delete;
+			Logger(Logger&&) noexcept = delete;
+			auto operator=(Logger&&) noexcept -> Logger& = delete;
+
+
+			template <typename ...Args>
+			static inline auto verbose(const std::format_string<Args...> &format, Args &&...args) noexcept -> void {
+				log(LogLevel::eVerbose, format, std::forward<Args> (args)...);
+			}
+
+			template <typename ...Args>
+			static inline auto info(const std::format_string<Args...> &format, Args &&...args) noexcept -> void {
+				log(LogLevel::eInfo, format, std::forward<Args> (args)...);
+			}
+
+			template <typename ...Args>
+			static inline auto warning(const std::format_string<Args...> &format, Args &&...args) noexcept -> void {
+				log(LogLevel::eWarning, format, std::forward<Args> (args)...);
+			}
+
+			template <typename ...Args>
+			static inline auto error(const std::format_string<Args...> &format, Args &&...args) noexcept -> void {
+				log(LogLevel::eError, format, std::forward<Args> (args)...);
+			}
+
+			template <typename ...Args>
+			static inline auto fatal(const std::format_string<Args...> &format, Args &&...args) noexcept -> void {
+				log(LogLevel::eFatal, format, std::forward<Args> (args)...);
+			}
+
+
+			template <typename ...Args>
+			static auto log(LogLevel level, const std::format_string<Args...> &format, Args &&...args) noexcept -> void {
+				if (level < s_minLevel)
+					return;
+
+				const std::string content {std::format(format, std::forward<Args> (args)...)};
+				std::string levelString {};
+				switch (level) {
+					using enum LogLevel;
+					case eVerbose: levelString = "verbose"; break;
+					case eInfo: levelString = "info"; break;
+					case eWarning: levelString = "warning"; break;
+					case eError: levelString = "error"; break;
+					case eFatal: levelString = "fatal"; break;
+				}
+
+				std::string colorStart {};
+				if (s_colorEnabled) {
+					switch (level) {
+						using enum LogLevel;
+						case eVerbose: colorStart = "\033[90m"; break;
+						case eInfo: colorStart = "\033[34m"; break;
+						case eWarning: colorStart = "\033[33m"; break;
+						case eError: colorStart = "\033[91m"; break;
+						case eFatal: colorStart = "\033[31m"; break;
+					}
+				}
+				const std::string colorEnd {s_colorEnabled ? "\033[m" : ""};
+
+				const std::string result {std::format(s_formatString,
+					content,
+					levelString,
+					colorStart,
+					colorEnd
+				)};
+
+				*s_outputStream << result << std::endl;
+			}
+
+			/*
+			 * {0} : the content of the log
+			 * {1} : the level of the log
+			 * {2} : the function origin of the log
+			 * {3} : the color opener
+			 * {4} : the color resetter
+			 * */
+			static inline auto setFormatString(const FormatStringType &string) noexcept -> void {s_formatString = string;}
+
+			static inline auto setOutputStream(std::ostream &stream, bool colorEnabled = false) noexcept -> void {
+				s_outputStream = &stream;
+				s_colorEnabled = colorEnabled;
+			}
+
+			static inline auto setMinLevel(LogLevel minLevel) noexcept -> void {s_minLevel = minLevel;}
+
+		private:
+			static std::ostream *s_outputStream;
+			static FormatStringType s_formatString;
+			static LogLevel s_minLevel;
+			static bool s_colorEnabled;
+	};
+
+
+
 	template <std::integral T>
 	constexpr auto stoi(std::string_view str) -> std::optional<T> {
 		T result {};

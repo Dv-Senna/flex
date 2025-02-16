@@ -17,7 +17,7 @@ set(FLEX_LIBRARY_AGGREGATE_MEMBERS_TUPLE_HEADER ${FLEX_LIBRARY_AUTOGEN_INCLUDE_D
 set(FLEX_LIBRARY_MACROS_VAR_TO_SEQ_SCRIPTS ${FLEX_LIBRARY_SCRIPTS_DIR}/macros_var_to_seq.py)
 set(FLEX_LIBRARY_MACROS_VAR_TO_SEQ_HEADER ${FLEX_LIBRARY_AUTOGEN_INCLUDE_DIR}/flex/macros/autogen/varToSeq.hpp)
 
-add_custom_target(flex_interface_autogen ALL DEPENDS
+add_custom_target(flex_lib_autogen ALL DEPENDS
 	${FLEX_LIBRARY_AGGREGATE_MEMBERS_TUPLE_HEADER}
 	${FLEX_LIBRARY_MACROS_VAR_TO_SEQ_HEADER}
 )
@@ -37,20 +37,21 @@ add_custom_command(
 )
 
 
-# library interface itself
+# library itself
 file(GLOB_RECURSE FLEX_LIBRARY_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/include/*.cpp)
 file(GLOB_RECURSE FLEX_LIBRARY_INLINE ${CMAKE_CURRENT_SOURCE_DIR}/include/*.inl)
+file(GLOB_RECURSE FLEX_LIBRARY_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 
-add_library(flex_interface INTERFACE ${FLEX_LIBRARY_HEADER} ${FLEX_LIBRARY_INLINE})
-add_library(flex::flex ALIAS flex_interface)
-set_property(TARGET flex_interface PROPERTY CXX_STANDARD ${FLEX_CPP_DIALECT})
-add_dependencies(flex_interface flex_interface_autogen)
+add_library(flex_lib STATIC ${FLEX_LIBRARY_HEADER} ${FLEX_LIBRARY_INLINE} ${FLEX_LIBRARY_SOURCE})
+add_library(flex::flex ALIAS flex_lib)
+set_property(TARGET flex_lib PROPERTY CXX_STANDARD ${FLEX_CPP_DIALECT})
+add_dependencies(flex_lib flex_lib_autogen)
 
-target_compile_definitions(flex_interface INTERFACE
-	__FLEX_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
-	__FLEX_VERSION_MINOR=${PROJECT_VERSION_MINOR}
-	__FLEX_VERSION_PATCH=${PROJECT_VERSION_PATCH}
+target_compile_definitions(flex_lib PUBLIC
+	FLEX_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
+	FLEX_VERSION_MINOR=${PROJECT_VERSION_MINOR}
+	FLEX_VERSION_PATCH=${PROJECT_VERSION_PATCH}
 )
 
-target_include_directories(flex_interface INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include ${FLEX_LIBRARY_AUTOGEN_INCLUDE_DIR})
+target_include_directories(flex_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include ${FLEX_LIBRARY_AUTOGEN_INCLUDE_DIR})
 

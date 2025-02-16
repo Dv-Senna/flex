@@ -62,15 +62,15 @@ static_assert(std::is_same_v<flex::reflection_members_t<Address>, std::tuple<std
 
 
 TEST_CASE("reflection", "[reflection]") {
-	std::println("Address<0> : '{}'", std::get<0> (flex::reflection_members_names_v<Address>));
-	std::println("Address<1> : '{}'", std::get<1> (flex::reflection_members_names_v<Address>));
-	std::println("Address<2> : '{}'", std::get<2> (flex::reflection_members_names_v<Address>));
-	std::println("Address<3> : '{}'", std::get<3> (flex::reflection_members_names_v<Address>));
+	flex::Logger::info("Address<0> : '{}'", std::get<0> (flex::reflection_members_names_v<Address>));
+	flex::Logger::info("Address<1> : '{}'", std::get<1> (flex::reflection_members_names_v<Address>));
+	flex::Logger::info("Address<2> : '{}'", std::get<2> (flex::reflection_members_names_v<Address>));
+	flex::Logger::info("Address<3> : '{}'", std::get<3> (flex::reflection_members_names_v<Address>));
 
-	std::println("Person<0> : '{}'", std::get<0> (flex::reflection_members_names_v<Person>));
-	std::println("Person<1> : '{}'", std::get<1> (flex::reflection_members_names_v<Person>));
-	std::println("Person<2> : '{}'", std::get<2> (flex::reflection_members_names_v<Person>));
-	std::println("Person<3> : '{}'", std::get<3> (flex::reflection_members_names_v<Person>));
+	flex::Logger::info("Person<0> : '{}'", std::get<0> (flex::reflection_members_names_v<Person>));
+	flex::Logger::info("Person<1> : '{}'", std::get<1> (flex::reflection_members_names_v<Person>));
+	flex::Logger::info("Person<2> : '{}'", std::get<2> (flex::reflection_members_names_v<Person>));
+	flex::Logger::info("Person<3> : '{}'", std::get<3> (flex::reflection_members_names_v<Person>));
 
 
 	Person person {};
@@ -83,8 +83,15 @@ TEST_CASE("reflection", "[reflection]") {
 	flex::reflection_traits<Address>::getMember<2> (flex::reflection_traits<Person>::getMember<3> (person)).postalCode = 3000;
 	flex::reflection_traits<Address>::getMember<3> (flex::reflection_traits<Person>::getMember<3> (person)) = "Switzerland";
 
-	std::println("person : {}", person);
-	std::println("person styled : {:4}", person);
+	flex::Logger::info("person : {}", person);
+	flex::Logger::info("person styled : {:4}", person);
+
+	flex::Logger::setMinLevel(flex::LogLevel::eVerbose);
+	flex::Logger::verbose("Some log");
+	flex::Logger::info("Some log");
+	flex::Logger::warning("Some log");
+	flex::Logger::error("Some log");
+	flex::Logger::fatal("Some log");
 
 	REQUIRE(person.name == "Albert");
 	REQUIRE(person.surname == "Einstein");
