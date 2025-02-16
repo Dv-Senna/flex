@@ -14,8 +14,12 @@ set(FLEX_LIBRARY_AUTOGEN_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/include)
 set(FLEX_LIBRARY_AGGREGATE_MEMBERS_TUPLE_SCRIPTS ${FLEX_LIBRARY_SCRIPTS_DIR}/aggregate_members_tuple.py)
 set(FLEX_LIBRARY_AGGREGATE_MEMBERS_TUPLE_HEADER ${FLEX_LIBRARY_AUTOGEN_INCLUDE_DIR}/flex/reflection/autogen/aggregateMembersTuple.hpp)
 
+set(FLEX_LIBRARY_MACROS_VAR_TO_SEQ_SCRIPTS ${FLEX_LIBRARY_SCRIPTS_DIR}/macros_var_to_seq.py)
+set(FLEX_LIBRARY_MACROS_VAR_TO_SEQ_HEADER ${FLEX_LIBRARY_AUTOGEN_INCLUDE_DIR}/flex/macros/autogen/varToSeq.hpp)
+
 add_custom_target(flex_interface_autogen ALL DEPENDS
 	${FLEX_LIBRARY_AGGREGATE_MEMBERS_TUPLE_HEADER}
+	${FLEX_LIBRARY_MACROS_VAR_TO_SEQ_HEADER}
 )
 
 # aggregate members tuple
@@ -25,6 +29,13 @@ add_custom_command(
 	DEPENDS ${FLEX_LIBRARY_AGGREGATE_MEMBERS_TUPLE_SCRIPTS}
 )
 
+# macros var to seq
+add_custom_command(
+	OUTPUT ${FLEX_LIBRARY_MACROS_VAR_TO_SEQ_HEADER}
+	COMMAND ${Python3_EXECUTABLE} ${FLEX_LIBRARY_MACROS_VAR_TO_SEQ_SCRIPTS} ${FLEX_LIBRARY_MACROS_VAR_TO_SEQ_HEADER} ${FLEX_MACROS_MAX_VAR_TO_SEQ_COUNT}
+	DEPENDS ${FLEX_LIBRARY_MACROS_VAR_TO_SEQ_SCRIPTS}
+)
+
 
 # library interface itself
 file(GLOB_RECURSE FLEX_LIBRARY_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/include/*.cpp)
@@ -32,7 +43,7 @@ file(GLOB_RECURSE FLEX_LIBRARY_INLINE ${CMAKE_CURRENT_SOURCE_DIR}/include/*.inl)
 
 add_library(flex_interface INTERFACE ${FLEX_LIBRARY_HEADER} ${FLEX_LIBRARY_INLINE})
 add_library(flex::flex ALIAS flex_interface)
-set_property(TARGET flex_interface PROPERTY CXX_STANDARD ${FIPPER_CPP_DIALECT})
+set_property(TARGET flex_interface PROPERTY CXX_STANDARD ${FLEX_CPP_DIALECT})
 add_dependencies(flex_interface flex_interface_autogen)
 
 target_compile_definitions(flex_interface INTERFACE

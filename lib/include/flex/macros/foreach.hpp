@@ -11,6 +11,9 @@
 #define FLEX_MACROS_STRINGIFY(...) __FLEX_MACROS_STRINGIFY_(__VA_ARGS__)
 #define __FLEX_MACROS_STRINGIFY_(...) #__VA_ARGS__
 
+#define FLEX_MACROS_CONCAT(...) __FLEX_MACROS_CONCAT_(__VA_ARGS__)
+#define __FLEX_MACROS_CONCAT_(a, b) a##b
+
 /*
  * @brief Convert a sequence to a guide
  *
