@@ -6,7 +6,11 @@ project(flex
 )
 
 # config
-set(FLEX_CPP_DIALECT 20)
+if (NOT DEFINED FLEX_CPP_DIALECT)
+	set(FLEX_CPP_DIALECT 20)
+endif()
+
+option(FLEX_BUILD_ONLY_HEADER OFF)
 
 if (${PROJECT_IS_TOP_LEVEL})
 	set(FLEX_DEFAULT_BUILD_TESTS On)

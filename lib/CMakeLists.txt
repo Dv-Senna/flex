@@ -37,22 +37,31 @@ add_custom_command(
 )
 
 
-# library itself
-file(GLOB_RECURSE FLEX_LIBRARY_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/include/*.cpp)
-file(GLOB_RECURSE FLEX_LIBRARY_INLINE ${CMAKE_CURRENT_SOURCE_DIR}/include/*.inl)
-file(GLOB_RECURSE FLEX_LIBRARY_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
+# header-only library
+add_library(flex_lib_header_only INTERFACE)
+add_library(flex::flex_header_only ALIAS flex_lib_header_only)
+set_property(TARGET flex_lib_header_only PROPERTY CXX_STANDARD ${FLEX_CPP_DIALECT})
+add_dependencies(flex_lib_header_only flex_lib_autogen)
 
-add_library(flex_lib STATIC ${FLEX_LIBRARY_HEADER} ${FLEX_LIBRARY_INLINE} ${FLEX_LIBRARY_SOURCE})
-add_library(flex::flex ALIAS flex_lib)
-set_property(TARGET flex_lib PROPERTY CXX_STANDARD ${FLEX_CPP_DIALECT})
-add_dependencies(flex_lib flex_lib_autogen)
-
-target_compile_definitions(flex_lib PUBLIC
+target_compile_definitions(flex_lib_header_only INTERFACE
 	FLEX_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
 	FLEX_VERSION_MINOR=${PROJECT_VERSION_MINOR}
 	FLEX_VERSION_PATCH=${PROJECT_VERSION_PATCH}
 	FLEX_REFLECTION_MAX_ENUM_SIZE=${FLEX_REFLECTION_MAX_ENUM_SIZE}
 )
 
-target_include_directories(flex_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include ${FLEX_LIBRARY_AUTOGEN_INCLUDE_DIR})
+target_include_directories(flex_lib_header_only INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include ${FLEX_LIBRARY_AUTOGEN_INCLUDE_DIR})
+
+
+# library itself
+if (NOT FLEX_BUILD_HEADER_ONLY)
+	file(GLOB_RECURSE FLEX_LIBRARY_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/include/*.cpp)
+	file(GLOB_RECURSE FLEX_LIBRARY_INLINE ${CMAKE_CURRENT_SOURCE_DIR}/include/*.inl)
+	file(GLOB_RECURSE FLEX_LIBRARY_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
+
+	add_library(flex_lib STATIC ${FLEX_LIBRARY_HEADER} ${FLEX_LIBRARY_INLINE} ${FLEX_LIBRARY_SOURCE})
+	add_library(flex::flex ALIAS flex_lib)
+	set_property(TARGET flex_lib PROPERTY CXX_STANDARD ${FLEX_CPP_DIALECT})
+	target_link_libraries(flex_lib PUBLIC flex::flex_header_only)
+endif()
 
