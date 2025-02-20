@@ -6,7 +6,7 @@ project(flex
 )
 
 # config
-set(FLEX_CPP_DIALECT 23)
+set(FLEX_CPP_DIALECT 20)
 
 if (${PROJECT_IS_TOP_LEVEL})
 	set(FLEX_DEFAULT_BUILD_TESTS On)

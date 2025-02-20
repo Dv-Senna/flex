@@ -69,15 +69,15 @@ namespace flex::reflection {
 	namespace __internals {
 		consteval auto stripCustomName(std::string_view name) noexcept -> std::string_view {
 			using namespace std::string_view_literals;
-		#ifdef __clang__
+		#if defined(__clang__)
 			name = {name.begin() + name.find("ptr = ") + "ptr = "sv.size(), name.end()};
 			name = {name.begin(), name.begin() + name.find("]")};
 			name = {name.begin() + name.rfind("::") + "::"sv.size(), name.end()};
-		#elifdef __GNUC__
+		#elif defined(__GNUC__)
 			name = {name.begin() + name.find("with auto ptr = ") + "with auto ptr = "sv.size(), name.end()};
 			name = {name.begin(), name.begin() + name.find(";")};
 			name = {name.begin() + name.rfind("::") + "::"sv.size(), name.end()};
-		#elifdef _MSC_VER
+		#elif defined(_MSC_VER)
 			name = {name.begin() + name.find("getFuncName<") + "getFuncName<"sv.size(), name.end()};
 			name = {name.begin(), name.begin() + name.find(">(void)")};
 			name = {name.begin() + name.rfind("::") + "::"sv.size(), name.end()};
