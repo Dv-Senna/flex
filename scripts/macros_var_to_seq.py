@@ -15,7 +15,7 @@ for val in range(0, amount+1):
     content += f"#define FLEX_MACROS_VAR_GET_{val}({args}, ...) e{val}\n"
 
 content += "\n"
-content += f"#define FLEX_MACROS_VAR_SIZE(...) FLEX_MACROS_VAR_GET_{amount}(__VA_ARGS__, {",".join([str(i) for i in range(amount, 0, -1)])})\n"
+content += f"#define FLEX_MACROS_VAR_SIZE(...) FLEX_MACROS_VAR_GET_{amount}(__VA_ARGS__, {','.join([str(i) for i in range(amount, 0, -1)])})\n"
 
 content += "\n"
 content += "/*\n"
