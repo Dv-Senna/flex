@@ -7,7 +7,7 @@ project(flex
 
 # config
 if (NOT DEFINED FLEX_CPP_DIALECT)
-	set(FLEX_CPP_DIALECT 20)
+	set(FLEX_CPP_DIALECT 23)
 endif()
 
 option(FLEX_BUILD_ONLY_HEADER OFF)

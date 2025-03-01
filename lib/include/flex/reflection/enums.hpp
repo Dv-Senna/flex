@@ -11,6 +11,13 @@ namespace flex {
 	template <typename T>
 	concept enumeration = std::is_enum_v<T>;
 
+	template <typename T>
+	concept scoped_enumeration = std::is_scoped_enum_v<T>;
+
+	template <typename T>
+	concept unscoped_enumeration = enumeration<T> && !scoped_enumeration<T>;
+
+
 	template <enumeration T>
 	struct enum_max_size : std::integral_constant<std::size_t, FLEX_REFLECTION_MAX_ENUM_SIZE> {};
 
@@ -19,7 +26,10 @@ namespace flex {
 
 
 	namespace __internals {
-		template <enumeration T, T VALUE>
+		template <scoped_enumeration T, T VALUE>
+		consteval auto getEnumName() noexcept -> std::optional<std::string_view>;
+
+		template <unscoped_enumeration T, T VALUE>
 		consteval auto getEnumName() noexcept -> std::optional<std::string_view>;
 
 	} // namespace __internals
