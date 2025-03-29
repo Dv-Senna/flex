@@ -23,6 +23,12 @@ namespace flex{
 	constexpr bool false_v = false;
 
 
+	template <typename T>
+	struct type_constant {
+		using type = T;
+	};
+
+
 	template <typename T, typename = void, typename ...Args>
 	struct is_aggregate_constructible : std::false_type {};
 

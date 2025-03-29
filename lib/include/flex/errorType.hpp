@@ -30,6 +30,24 @@ namespace flex {
 	template <typename T>
 	struct error_type_traits {
 		static constexpr bool IS_ERROR_TYPE {false};
+		using Type = T;
+		using ValueType = void;
+		using ErrorType = void;
+
+		static constexpr auto hasValue(const Type&) noexcept -> bool;
+		static constexpr auto getValue(Type&) noexcept;
+		static constexpr auto getValue(const Type&) noexcept;
+		template <typename U>
+		static constexpr auto getValueOr(Type&&, U&&) noexcept;
+		template <typename U>
+		static constexpr auto getValueOr(const Type&, U&&) noexcept;
+
+		static constexpr auto getError(Type&) noexcept;
+		static constexpr auto getError(const Type&) noexcept;
+		template <typename G>
+		static constexpr auto getErrorOr(Type&&, G&&) noexcept;
+		template <typename G>
+		static constexpr auto getErrorOr(const Type&, G&&) noexcept;
 	};
 
 
@@ -39,14 +57,19 @@ namespace flex {
 		using Type = std::optional<T>;
 		using ValueType = T;
 		using ErrorType = void;
-		
+
+		[[nodiscard]]
 		static constexpr auto hasValue(const Type &instance) noexcept -> bool {return !!instance;}
+		[[nodiscard]]
 		static constexpr auto getValue(Type &instance) noexcept -> ValueType& {return *instance;}
+		[[nodiscard]]
 		static constexpr auto getValue(const Type &instance) noexcept -> const ValueType& {return *instance;}
 
 		template <typename U = std::remove_cvref_t<T>>
+		[[nodiscard]]
 		static constexpr auto getValueOr(Type &&instance, U &&defaultValue) noexcept -> ValueType {return instance.value_or(std::forward<U> (defaultValue));}
 		template <typename U = std::remove_cvref_t<T>>
+		[[nodiscard]]
 		static constexpr auto getValueOr(const Type &instance, U &&defaultValue) noexcept -> ValueType {return instance.value_or(std::forward<U> (defaultValue));}
 	};
 
@@ -58,21 +81,30 @@ namespace flex {
 		using ValueType = T;
 		using ErrorType = E;
 
+		[[nodiscard]]
 		static constexpr auto hasValue(const Type &instance) noexcept -> bool {return !!instance;}
+		[[nodiscard]]
  		static constexpr auto getValue(Type &instance) noexcept -> ValueType& {return *instance;}
+		[[nodiscard]]
 		static constexpr auto getValue(const Type &instance) noexcept -> const ValueType& {return *instance;}
 
 		template <typename U = std::remove_cvref_t<T>>
+		[[nodiscard]]
 		static constexpr auto getValueOr(Type &&instance, U &&defaultValue) noexcept -> ValueType {return instance.value_or(std::forward<U> (defaultValue));}
 		template <typename U = std::remove_cvref_t<T>>
+		[[nodiscard]]
 		static constexpr auto getValueOr(const Type &instance, U &&defaultValue) noexcept -> ValueType {return instance.value_or(std::forward<U> (defaultValue));}
 
+		[[nodiscard]]
 		static constexpr auto getError(Type &instance) noexcept -> ValueType& {return instance.error();}
+		[[nodiscard]]
 		static constexpr auto getError(const Type &instance) noexcept -> const ValueType& {return instance.error();}
 
 		template <typename G = std::remove_cvref_t<T>>
+		[[nodiscard]]
 		static constexpr auto getErrorOr(Type &&instance, G &&defaultValue) noexcept -> ErrorType {return instance.error_or(std::forward<G> (defaultValue));}
 		template <typename G = std::remove_cvref_t<T>>
+		[[nodiscard]]
 		static constexpr auto getErrorOr(const Type &instance, G &&defaultValue) noexcept -> ErrorType {return instance.error_or(std::forward<G> (defaultValue));}
 	};
 
@@ -84,13 +116,18 @@ namespace flex {
 		using ValueType = T::ValueType;
 		using ErrorType = void;
 
+		[[nodiscard]]
 		static constexpr auto hasValue(const Type &instance) noexcept -> bool {return !!instance;}
+		[[nodiscard]]
 		static constexpr auto getValue(Type &instance) noexcept -> ValueType& {return *instance;}
+		[[nodiscard]]
 		static constexpr auto getValue(const Type &instance) noexcept -> const ValueType& {return *instance;}
 
 		template <typename U = std::remove_cvref_t<T>>
+		[[nodiscard]]
 		static constexpr auto getValueOr(Type &&instance, U &&defaultValue) noexcept -> ValueType {return !instance ? defaultValue : *instance;}
 		template <typename U = std::remove_cvref_t<T>>
+		[[nodiscard]]
 		static constexpr auto getValueOr(const Type &instance, U &&defaultValue) noexcept -> ValueType {return !instance ? defaultValue : *instance;}
 	};
 
@@ -100,23 +137,32 @@ namespace flex {
 		static constexpr bool IS_ERROR_TYPE {true};
 		using Type = T;
 		using ValueType = T::ValueType;
-		using ErrorType = void;
+		using ErrorType = T::ErrorType;
 
+		[[nodiscard]]
 		static constexpr auto hasValue(const Type &instance) noexcept -> bool {return !!instance;}
+		[[nodiscard]]
 		static constexpr auto getValue(Type &instance) noexcept -> ValueType& {return *instance;}
+		[[nodiscard]]
 		static constexpr auto getValue(const Type &instance) noexcept -> const ValueType& {return *instance;}
 
 		template <typename U = std::remove_cvref_t<T>>
+		[[nodiscard]]
 		static constexpr auto getValueOr(Type &&instance, U &&defaultValue) noexcept -> ValueType {return !instance ? defaultValue : *instance;}
 		template <typename U = std::remove_cvref_t<T>>
+		[[nodiscard]]
 		static constexpr auto getValueOr(const Type &instance, U &&defaultValue) noexcept -> ValueType {return !instance ? defaultValue : *instance;}
 
+		[[nodiscard]]
 		static constexpr auto getError(Type &instance) noexcept -> ValueType& {return instance.error();}
+		[[nodiscard]]
 		static constexpr auto getError(const Type &instance) noexcept -> const ValueType& {return instance.error();}
 
 		template <typename G = std::remove_cvref_t<T>>
+		[[nodiscard]]
 		static constexpr auto getErrorOr(Type &&instance, G &&defaultValue) noexcept -> ErrorType {return !instance ? instance.getError() : defaultValue;}
 		template <typename G = std::remove_cvref_t<T>>
+		[[nodiscard]]
 		static constexpr auto getErrorOr(const Type &instance, G &&defaultValue) noexcept -> ErrorType {return !instance ? instance.getError() : defaultValue;}
 	};
 
