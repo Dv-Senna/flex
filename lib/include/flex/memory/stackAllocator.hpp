@@ -22,6 +22,7 @@ namespace flex::memory {
 		using _SharedStateAllocator = flex::memory::allocator_rebind_t<Allocator, _SharedState>;
 		using _unified_allocator_traits = flex::memory::allocator_traits<_UnifiedAllocator>;
 		using _shared_state_allocator_traits = flex::memory::allocator_traits<_SharedStateAllocator>;
+		using _SharedStatePointer = flex::memory::allocator_pointer_t<_SharedStateAllocator>;
 
 		static constexpr bool IS_ALLOCATOR_STORED = flex::memory::stateful_allocator<Allocator>;
 
@@ -45,13 +46,13 @@ namespace flex::memory {
 			StackAllocatorView(_This &&allocator) noexcept;
 			auto operator=(_This &&allocator) noexcept -> _This&;
 
-			static auto make(SizeType size) noexcept -> _This;
+			static auto make(SizeType size) noexcept -> std::expected<_This, flex::memory::AllocatorErrorCode> requires (!IS_ALLOCATOR_STORED);
 			template <flex::memory::allocator Allocator2>
 			requires std::same_as<std::remove_cvref_t<Allocator2>, Allocator>
-			static auto make(Allocator2 &&allocator, SizeType size) noexcept -> _This requires (IS_ALLOCATOR_STORED);
+			static auto make(Allocator2 &&allocator, SizeType size) noexcept -> std::expected<_This, flex::memory::AllocatorErrorCode> requires (IS_ALLOCATOR_STORED);
 
-			auto allocate(std::size_t n) noexcept -> std::optional<PointerType>;
-			auto deallocate(const PointerType &ptr, std::size_t n) noexcept -> void;
+			auto allocate(std::size_t n) noexcept -> std::expected<PointerType, flex::memory::AllocatorErrorCode>;
+			auto deallocate(const PointerType &ptr, std::size_t n) noexcept -> flex::memory::AllocatorErrorCode;
 
 			template <typename ...Args>
 			auto construct(const PointerType &ptr, Args &&...args) noexcept;
@@ -64,6 +65,13 @@ namespace flex::memory {
 
 
 		private:
+			static auto s_make(
+				SizeType size,
+				_This &&allocator,
+				_SharedStateAllocator &&sharedStateAllocator,
+				_UnifiedAllocator &&unifiedAllocator
+			) noexcept -> std::expected<_This, flex::memory::AllocatorErrorCode>;
+
 			struct _SharedState {
 				[[no_unique_address]]
 				flex::enable_field_if_t<THREAD_SAFE, std::mutex> mutex;
@@ -73,14 +81,15 @@ namespace flex::memory {
 				std::conditional_t<THREAD_SAFE, std::atomic_int_fast32_t, int_fast32_t> instanceCount;
 				SizeType size;
 
-				_SharedStateAllocator sharedStateAllocator;
+				[[no_unique_address]]
+				flex::enable_field_if_t<IS_ALLOCATOR_STORED, _SharedStateAllocator> sharedStateAllocator;
 				[[no_unique_address]]
 				flex::enable_field_if_t<IS_ALLOCATOR_STORED, _UnifiedAllocator> unifiedAllocator;
 			};
 
 			[[no_unique_address]]
 			flex::enable_field_if_t<IS_ALLOCATOR_STORED, Allocator> m_allocator;
-			flex::memory::allocator_pointer_t<_SharedStateAllocator> m_sharedState;
+			_SharedStatePointer m_sharedState;
 	};
 
 } // namespace flex::memory

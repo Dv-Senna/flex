@@ -7,7 +7,7 @@
 
 namespace flex {
 	template <typename T>
-	struct ErrorCode {
+	struct error_code_traits {
 		static constexpr bool IS_ERROR_CODE {false};
 
 		static constexpr auto isSuccess(T code) noexcept -> bool;
@@ -15,7 +15,7 @@ namespace flex {
 	};
 
 	template <flex::enumeration T>
-	struct ErrorCode<T> {
+	struct error_code_traits<T> {
 		static constexpr bool IS_ERROR_CODE {true};
 
 		static constexpr auto isSuccess(T code) noexcept -> bool {
@@ -28,7 +28,7 @@ namespace flex {
 	};
 
 	template <std::integral T>
-	struct ErrorCode<T> {
+	struct error_code_traits<T> {
 		static constexpr bool IS_ERROR_CODE {true};
 
 		static constexpr auto isSuccess(T code) noexcept -> bool {
@@ -42,6 +42,9 @@ namespace flex {
 
 
 	template <typename T>
-	constexpr auto is_error_code_v = ErrorCode<T>::IS_ERROR_CODE;
+	constexpr auto is_error_code_v = error_code_traits<T>::IS_ERROR_CODE;
+
+	template <typename T>
+	concept error_code = is_error_code_v<T>;
 
 } // namespace flex

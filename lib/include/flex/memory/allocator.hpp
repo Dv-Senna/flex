@@ -259,9 +259,15 @@ namespace flex::memory {
 		eFailure,
 		eAllocationFailure,
 		eDeallocationFailure,
+
 		eStackSharedStateAllocationFailure,
 		eStackSharedAllocatorRebindFailure,
-		eStackBlockAllocationFailure
+		eStackBlockAllocationFailure,
+		eStackSharedStateCreationFailure,
+		eStackUnifiedAllocatorRebindFailure,
+		eStackNotInitialized,
+		eStackTooSmall,
+		eStackInvalidPtr
 	};
 
 	template <std_allocator T>
