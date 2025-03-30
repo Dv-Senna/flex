@@ -20,16 +20,25 @@ namespace flex::memory {
 
 
 	template <typename Alloc>
-	concept allocator = requires(Alloc alloc, std::size_t n) {
+	concept allocator = requires(Alloc alloc, const Alloc constAlloc, std::size_t n) {
 		typename Alloc::ValueType;
 		{alloc.allocate(n)} -> flex::error_type;
 		{*flex::error_type_traits<decltype(alloc.allocate(n))>::getValue(alloc.allocate(n))} -> std::same_as<std::add_lvalue_reference_t<typename Alloc::ValueType>>;
 		alloc.deallocate(flex::error_type_traits<decltype(alloc.allocate(n))>::getValue(alloc.allocate(n)), n);
+		{constAlloc.template rebind<typename Alloc::ValueType> ()} -> flex::error_type;
 
 		noexcept(alloc.allocate(n)) == true;
 		noexcept(alloc.deallocate(*alloc.allocate(n), n)) == true;
+		noexcept(constAlloc.template rebind<typename Alloc::ValueType> ()) == true;
 	} && std::copy_constructible<Alloc>
-		&& std::equality_comparable<Alloc>;
+		&& std::equality_comparable<Alloc>
+		&& std::default_initializable<Alloc>
+		&& std::same_as<
+			std::remove_cvref_t<decltype(flex::error_type_traits<
+				decltype(std::declval<const Alloc> ().template rebind<typename Alloc::ValueType> ())
+			>::getValue(std::declval<const Alloc> ().template rebind<typename Alloc::ValueType> ()))>,
+			Alloc
+		>;
 
 
 	namespace __internals {
@@ -38,6 +47,15 @@ namespace flex::memory {
 			typename Alloc::PointerType;
 			typename Alloc::ConstPointerType;
 		} && std::convertible_to<typename Alloc::PointerType, typename Alloc::ConstPointerType>;
+
+		template <typename Alloc>
+		concept allocator_with_custom_void_pointer = allocator_with_custom_pointer<Alloc> && requires() {
+			typename Alloc::VoidPointerType;
+			typename Alloc::ConstVoidPointerType;
+		} && std::convertible_to<typename Alloc::VoidPointerType, typename Alloc::ConstVoidPointerType>
+			&& std::convertible_to<typename Alloc::PointerType, typename Alloc::VoidPointerType>
+			&& std::convertible_to<typename Alloc::PointerType, typename Alloc::ConstVoidPointerType>
+			&& std::convertible_to<typename Alloc::ConstPointerType, typename Alloc::ConstVoidPointerType>;
 
 		template <typename Alloc>
 		concept allocator_with_custom_size_type = allocator<Alloc> && requires() {
@@ -102,6 +120,20 @@ namespace flex::memory {
 
 		template <allocator_with_custom_pointer Alloc>
 		struct allocator_const_pointer<Alloc> : flex::type_constant<typename Alloc::ConstPointerType> {};
+
+
+		template <allocator Alloc>
+		struct allocator_void_pointer : flex::type_constant<void*> {};
+
+		template <allocator_with_custom_void_pointer Alloc>
+		struct allocator_void_pointer<Alloc> : flex::type_constant<typename Alloc::VoidPointerType> {};
+
+
+		template <allocator Alloc>
+		struct allocator_const_void_pointer : flex::type_constant<const void*> {};
+
+		template <allocator_with_custom_void_pointer Alloc>
+		struct allocator_const_void_pointer<Alloc> : flex::type_constant<typename Alloc::ConstVoidPointerType> {};
 	
 
 		template <allocator Alloc>
@@ -138,6 +170,8 @@ namespace flex::memory {
 		using ValueType = T::ValueType;
 		using PointerType = typename __internals::allocator_pointer<T>::type;
 		using ConstPointerType = typename __internals::allocator_const_pointer<T>::type;
+		using VoidPointerType = typename __internals::allocator_void_pointer<T>::type;
+		using ConstVoidPointerType = typename __internals::allocator_const_void_pointer<T>::type;
 		using SizeType = typename __internals::allocator_size<T>::type;
 		using DifferenceType = typename __internals::allocator_difference<T>::type;
 
@@ -171,6 +205,10 @@ namespace flex::memory {
 				std::destroy_at(std::to_address(ptr));
 		}
 
+		template <typename Rebind>
+		[[nodiscard]]
+		static constexpr auto rebind(const T &instance) noexcept {return instance.template rebind<Rebind> ();}
+
 		[[nodiscard]]
 		static constexpr auto copyOnContainerCopy(const T &instance) noexcept {
 			if constexpr (__internals::allocator_with_custom_copy_on_container_copy<T>)
@@ -191,6 +229,12 @@ namespace flex::memory {
 	using allocator_const_pointer_t = typename allocator_traits<T>::ConstPointerType;
 
 	template <allocator T>
+	using allocator_void_pointer_t = typename allocator_traits<T>::VoidPointerType;
+
+	template <allocator T>
+	using allocator_const_void_pointer_t = typename allocator_traits<T>::ConstVoidPointerType;
+
+	template <allocator T>
 	using allocator_size_t = typename allocator_traits<T>::SizeType;
 
 	template <allocator T>
@@ -204,7 +248,7 @@ namespace flex::memory {
 
 
 	template <typename T>
-	concept statefull_allocator = allocator<T> && !is_allocator_always_equal_v<T>;
+	concept stateful_allocator = allocator<T> && !is_allocator_always_equal_v<T>;
 
 	template <typename T>
 	concept stateless_allocator = allocator<T> && is_allocator_always_equal_v<T>;
@@ -212,15 +256,25 @@ namespace flex::memory {
 
 	enum AllocatorErrorCode {
 		eSuccess = 0,
-		eFailure
+		eFailure,
+		eAllocationFailure,
+		eDeallocationFailure,
+		eStackSharedStateAllocationFailure,
+		eStackSharedAllocatorRebindFailure,
+		eStackBlockAllocationFailure
 	};
 
 	template <std_allocator T>
 	class StandardAllocatorWrapper final {
+		template <std_allocator U>
+		friend class StandardAllocatorWrapper;
+
 		public:
 			using ValueType = std::allocator_traits<T>::value_type;
 			using PointerType = std::allocator_traits<T>::pointer;
 			using ConstPointerType = std::allocator_traits<T>::const_pointer;
+			using VoidPointerType = std::allocator_traits<T>::void_pointer;
+			using ConstVoidPointerType = std::allocator_traits<T>::const_void_pointer;
 			using SizeType = std::allocator_traits<T>::size_type;
 			using DifferenceType = std::allocator_traits<T>::difference_type;
 
@@ -228,7 +282,7 @@ namespace flex::memory {
 			using RebindType = std::allocator_traits<T>::template rebind_alloc<Rebind>;
 
 			static constexpr bool IS_ALWAYS_EQUAL = std::allocator_traits<T>::is_always_equal;
-			static constexpr bool STORE_ALLOCATOR = !IS_ALWAYS_EQUAL && !std::is_default_constructible_v<T>;
+			static constexpr bool STORE_ALLOCATOR = !IS_ALWAYS_EQUAL;
 
 			constexpr StandardAllocatorWrapper() noexcept = default;
 			constexpr ~StandardAllocatorWrapper() = default;
@@ -300,9 +354,22 @@ namespace flex::memory {
 			};
 
 
-			constexpr auto copyOnContainerCopy() const noexcept -> std::optional<T> {
+			template <typename Rebind>
+			[[nodiscard]]
+			constexpr auto rebind() const noexcept -> std::optional<RebindType<Rebind>> {
 				try {
-					return std::allocator_traits<T>::select_on_container_copy_construction(this->m_getAllocator());
+					return RebindType<Rebind> {*this};
+				}
+				catch (...) {
+					return std::nullopt;
+				}
+			}
+
+
+			[[nodiscard]]
+			constexpr auto copyOnContainerCopy() const noexcept -> std::optional<StandardAllocatorWrapper<T>> {
+				try {
+					return StandardAllocatorWrapper<T> {std::allocator_traits<T>::select_on_container_copy_construction(this->m_getAllocator())};
 				}
 				catch (...) {
 					return std::nullopt;
@@ -350,6 +417,12 @@ namespace flex::memory {
 
 			auto deallocate(PointerType ptr, std::size_t) const noexcept -> void {
 				std::free(ptr);
+			}
+
+			template <typename Rebind>
+			[[nodiscard]]
+			constexpr auto rebind() const noexcept -> std::optional<RebindType<Rebind>> {
+				return RebindType<Rebind> {};
 			}
 	};
 

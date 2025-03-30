@@ -29,6 +29,16 @@ namespace flex{
 	};
 
 
+	template <bool cond, typename T>
+	struct enable_field_if : type_constant<T> {};
+
+	template <typename T>
+	struct enable_field_if<false, T> : type_constant<Empty> {};
+
+	template <bool cond, typename T>
+	using enable_field_if_t = typename enable_field_if<cond, T>::type;
+
+
 	template <typename T, typename = void, typename ...Args>
 	struct is_aggregate_constructible : std::false_type {};
 
