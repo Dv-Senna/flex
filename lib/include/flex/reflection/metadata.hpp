@@ -226,7 +226,9 @@ namespace flex::reflection {
 			is_custom_member_named_v<N, T>
 		, void>
 	> {
-		using type = flex::member_pointer_extractor_t<std::remove_cvref_t<std::tuple_element_t<__internals::member_index_from_field_v<N, T>, custom_member_metadata_field_t<N, T>>>>;
+		using type = flex::member_pointer_extractor_t<
+			std::remove_cvref_t<std::tuple_element_t<__internals::member_index_from_field_v<N, T>, custom_member_metadata_field_t<N, T>>>
+		>;
 	};
 
 	template <std::size_t N, custom T>

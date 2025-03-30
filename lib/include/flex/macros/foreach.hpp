@@ -26,7 +26,7 @@
  * This macro is here to get the best of both world, ease of write and ease of
  * iteration, by converting automaticly a sequence to a guide.
  *
- * The defintion of a guide is inspired by https://github.com/HolyBlackCat/macro_sequence_for
+ * The definition of a guide is inspired by https://github.com/HolyBlackCat/macro_sequence_for
  * */
 #define FLEX_MACROS_SEQ_TO_GUIDE(seq) __FLEX_MACROS_SEQ_TO_GUIDE_END(__FLEX_MACROS_SEQ_TO_GUIDE_A seq) __FLEX_GUIDE_END_MARK)
 #define __FLEX_MACROS_SEQ_TO_GUIDE_A(...) __FLEX_MACROS_RPARENTHESIS FLEX_MACROS_EMPTY() __VA_ARGS__ __FLEX_MACROS_RPARENTHESIS FLEX_MACROS_EMPTY() __FLEX_MACROS_SEQ_TO_GUIDE_B
