@@ -4,6 +4,8 @@
 #include <flex/reflection/reflection.hpp>
 #include <catch2/catch_test_macros.hpp>
 
+#include "flex/typeSets.hpp"
+
 struct City {
 	int postalCode;
 	std::string city;
