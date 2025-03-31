@@ -92,6 +92,10 @@ namespace flex::memory {
 			_SharedStatePointer m_sharedState;
 	};
 
+
+	template <typename T>
+	using StackAllocator = StackAllocatorView<flex::memory::Allocator<T>>;
+
 } // namespace flex::memory
 
 #include "flex/memory/stackAllocator.inl"

@@ -1,10 +1,11 @@
 #include <flex/memory/allocator.hpp>
+#include <flex/memory/stackAllocator.hpp>
 
 #include <print>
 
 
 auto main(int, char**) -> int {
-	flex::memory::Allocator<int> allocator {};
+	/*flex::memory::StackAllocator<int> allocator {};
 
 	std::optional ptrWithError {flex::memory::allocator_traits<decltype(allocator)>::allocate(allocator, 16)};
 	if (!ptrWithError)
@@ -16,6 +17,6 @@ auto main(int, char**) -> int {
 	for (std::size_t i {0}; i < 16; ++i)
 		std::println("{}", (*ptrWithError)[i]);
 
-	flex::memory::allocator_traits<decltype(allocator)>::deallocate(allocator, *ptrWithError, 16);
+	flex::memory::allocator_traits<decltype(allocator)>::deallocate(allocator, *ptrWithError, 16);*/
 	return EXIT_SUCCESS;
 }
