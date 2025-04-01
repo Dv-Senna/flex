@@ -6,7 +6,9 @@
 #define ENUM_STEP(ctx, step_ctx) step_ctx << 1
 #define ENUM_FINAL(ctx, step_ctx) eBitMask = (step_ctx) - 1
 
-#define MAKE_FLAG_ENUM(name, ...) enum class name : std::uint32_t {FLEX_MACROS_SEQ_FOREACH(ENUM_BODY, ENUM_STEP, ENUM_FINAL, FLEX_MACROS_NULL,, 1, FLEX_MACROS_VAR_TO_SEQ(__VA_ARGS__))}
+#define MAKE_FLAG_ENUM(name, ...) enum class name : std::uint32_t {\
+	FLEX_MACROS_SEQ_FOREACH(ENUM_BODY, ENUM_STEP, ENUM_FINAL, FLEX_MACROS_NULL,, 1, FLEX_MACROS_VAR_TO_SEQ(__VA_ARGS__))\
+}
 
 MAKE_FLAG_ENUM(Access,
 	eRead,

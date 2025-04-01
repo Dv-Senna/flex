@@ -137,13 +137,39 @@ namespace flex {
 
 
 	namespace __internals {
+		template <reflectable T, typename = void>
+		struct is_reflectable_formatter_specialized : std::false_type {};
+
+		template <reflectable T>
+		struct is_reflectable_formatter_specialized<T,
+			std::void_t<std::tuple<
+				decltype(std::formatter<T>::parse(flex::AnyTypePlaceholder{})),
+				decltype(std::formatter<T>::format(flex::AnyTypePlaceholder{}))
+			>>
+		> : std::true_type {};
+
+	} // namespace __internals
+
+	template <reflectable T>
+	struct reflectable_custom_formatter : __internals::is_reflectable_formatter_specialized<T> {};
+
+	template <reflectable T>
+	constexpr auto reflectable_custom_formatter_v = reflectable_custom_formatter<T>::value;
+
+	template <typename T>
+	concept reflectable_autogen_formatter = reflectable<T> && !reflectable_custom_formatter_v<T>;
+
+
+	namespace __internals {
 		template <flex::reflectable T, std::size_t INDEX = 0>
 		requires (INDEX < flex::reflection_members_count_v<T>)
 		auto logReflectableMember(std::ostringstream &stream, const T &value, std::size_t width) noexcept -> void {
 			std::string spaces (width, ' ');
 			stream << spaces << std::get<INDEX> (flex::reflection_members_names_v<T>) << ": ";
 
-		#define __FLEX_CURRENT_VALUE static_cast<const std::tuple_element_t<INDEX, flex::reflection_members_t<T>>&> (flex::reflection_traits<T>::template getMember<INDEX> (value))
+		#define __FLEX_CURRENT_VALUE static_cast<const std::tuple_element_t<INDEX, flex::reflection_members_t<T>>&> (\
+			flex::reflection_traits<T>::template getMember<INDEX> (value)\
+		)
 			if constexpr (!flex::is_reflectable_v<std::tuple_element_t<INDEX, flex::reflection_members_t<T>>>) {
 				if constexpr (flex::is_string_v<std::tuple_element_t<INDEX, flex::reflection_members_t<T>>>)
 					stream << std::quoted(__FLEX_CURRENT_VALUE);
@@ -179,7 +205,7 @@ namespace flex {
 } // namespace flex
 
 
-template <flex::reflectable T>
+template <flex::reflectable_autogen_formatter T>
 class std::formatter<T, char> {
 	public:
 		constexpr auto parse(std::format_parse_context &ctx) -> std::format_parse_context::iterator {

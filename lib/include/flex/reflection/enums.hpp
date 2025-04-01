@@ -45,13 +45,8 @@ namespace flex {
 	constexpr auto enum_value_generator_v = enum_value_generator<T>::value;
 
 
-	template <enumeration T, T VALUE, typename = void>
-	struct is_enum_member : std::false_type {};
-
 	template <enumeration T, T VALUE>
-	struct is_enum_member<T, VALUE,
-		std::enable_if_t<!!__internals::getEnumName<T, VALUE> (), void>
-	> : std::true_type {};
+	struct is_enum_member : std::bool_constant<!!__internals::getEnumName<T, VALUE> ()> {};
 
 	template <enumeration T, T VALUE>
 	constexpr auto is_enum_member_v = is_enum_member<T, VALUE>::value;
@@ -131,12 +126,12 @@ namespace flex {
 
 
 #define FLEX_MAKE_ENUM_BITFLAG(name) template <>\
-	struct flex::enum_value_generator<SomeBitfield> {\
-		static constexpr auto value {[](std::size_t index) constexpr {return (SomeBitfield)(1 << index);}};\
+	struct flex::enum_value_generator<name> {\
+		static constexpr auto value {[](std::size_t index) constexpr {return (name)(1 << index);}};\
 		using value_type = decltype(value);\
 	}
 #define FLEX_SET_MAX_ENUM_SIZE(name, value) template <>\
-	struct flex::enum_max_size<SomeBitfield> : std::integral_constant<std::size_t, 3> {}
+	struct flex::enum_max_size<name> : std::integral_constant<std::size_t, 3> {}
 
 
 #include "flex/reflection/enums.inl"

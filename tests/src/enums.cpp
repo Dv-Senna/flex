@@ -16,8 +16,8 @@ enum class SomeBitfield {
 };
 
 
-FLEX_SET_MAX_ENUM_SIZE(SomeBitField, 3);
-FLEX_MAKE_ENUM_BITFLAG(SomeBitField);
+FLEX_SET_MAX_ENUM_SIZE(SomeBitfield, 3);
+FLEX_MAKE_ENUM_BITFLAG(SomeBitfield);
 
 
 TEST_CASE("macros", "[reflection]") {

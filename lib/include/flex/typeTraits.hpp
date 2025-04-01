@@ -88,12 +88,8 @@ namespace flex{
 	template <typename T, typename = void>
 	struct sfinae_tuple_size : std::integral_constant<std::size_t, std::numeric_limits<std::size_t>::max()> {};
 
-	template <typename T>
-	struct sfinae_tuple_size<T,
-		std::enable_if_t<
-			is_tuple_v<T>
-		, void>
-	> : std::integral_constant<std::size_t, std::tuple_size_v<T>> {};
+	template <tuple T>
+	struct sfinae_tuple_size<T> : std::integral_constant<std::size_t, std::tuple_size_v<T>> {};
 
 	template <typename T>
 	constexpr auto sfinae_tuple_size_v = sfinae_tuple_size<T>::value;
