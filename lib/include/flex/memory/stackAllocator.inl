@@ -8,16 +8,39 @@
 namespace flex::memory {
 	template <flex::memory::allocator Allocator, bool THREAD_SAFE>
 	StackAllocatorView<Allocator, THREAD_SAFE>::~StackAllocatorView() {
+		using UnifiedPointer = flex::memory::allocator_pointer_t<_UnifiedAllocator>;
 		if (m_sharedState == _SharedStatePointer{})
 			return;
 		--m_sharedState->instanceCount;
 		if (m_sharedState->instanceCount != 0)
 			return;
 
-		if (m_sharedState->rbp != VoidPointerType{})
-			(void)_unified_allocator_traits::deallocate(m_sharedState->unifiedAllocator, m_sharedState->rbp);
-		_SharedStateAllocator sharedStateAllocator {std::move(m_sharedState->sharedStateAllocator)};
-		(void)_shared_state_allocator_traits::deallocate(sharedStateAllocator, m_sharedState);
+		if (m_sharedState->rbp != VoidPointerType{}) {
+			if constexpr (IS_ALLOCATOR_STORED) {
+				(void)_unified_allocator_traits::deallocate(
+					m_sharedState->unifiedAllocator,
+					static_cast<UnifiedPointer> (m_sharedState->rbp),
+					m_sharedState->size
+				);
+			}
+			else {
+				_UnifiedAllocator allocator {};
+				(void)_unified_allocator_traits::deallocate(
+					allocator,
+					static_cast<UnifiedPointer> (m_sharedState->rbp),
+					m_sharedState->size
+				);
+			}
+		}
+
+		if constexpr (IS_ALLOCATOR_STORED) {
+			_SharedStateAllocator sharedStateAllocator {std::move(m_sharedState->sharedStateAllocator)};
+			(void)_shared_state_allocator_traits::deallocate(sharedStateAllocator, m_sharedState, 1);
+		}
+		else {
+			_SharedStateAllocator allocator {};
+			(void)_shared_state_allocator_traits::deallocate(allocator, m_sharedState, 1);
+		}
 	}
 
 
@@ -91,23 +114,24 @@ namespace flex::memory {
 
 	template <flex::memory::allocator Allocator, bool THREAD_SAFE>
 	auto StackAllocatorView<Allocator, THREAD_SAFE>::allocate(std::size_t n) noexcept -> std::expected<PointerType, flex::memory::AllocatorErrorCode> {
+		using UnifiedPointer = flex::memory::allocator_pointer_t<_UnifiedAllocator>;
 		if (m_sharedState == _SharedStatePointer{} || m_sharedState->rbp == VoidPointerType{})
 			return std::unexpected{flex::memory::AllocatorErrorCode::eStackNotInitialized};
 
 		auto address {std::to_address(m_sharedState->rsp)};
-		auto alignmentOffset {static_cast<std::uint64_t> (address) % alignof(ValueType)};
+		auto alignmentOffset {reinterpret_cast<std::uint64_t> (address) % alignof(ValueType)};
 		if (alignmentOffset != 0)
 			alignmentOffset = alignof(ValueType) - alignmentOffset;
 
 		SizeType size {n * sizeof(ValueType)};
-		DifferenceType offset {m_sharedState->rsp - m_sharedState->rbp};
+		DifferenceType offset {static_cast<UnifiedPointer> (m_sharedState->rsp) - static_cast<UnifiedPointer> (m_sharedState->rbp)};
 		if (offset + alignmentOffset + size > m_sharedState->size)
 			return std::unexpected{flex::memory::AllocatorErrorCode::eStackTooSmall};
 
-		m_sharedState->rsp += alignmentOffset;
+		m_sharedState->rsp = static_cast<VoidPointerType> (static_cast<UnifiedPointer> (m_sharedState->rsp) + alignmentOffset);
 		auto ptr {m_sharedState->rsp};
-		m_sharedState->rsp += size;
-		return ptr;
+		m_sharedState->rsp = static_cast<VoidPointerType> (static_cast<UnifiedPointer> (m_sharedState->rsp) + size);
+		return static_cast<PointerType> (ptr);
 	}
 
 
@@ -115,7 +139,7 @@ namespace flex::memory {
 	auto StackAllocatorView<Allocator, THREAD_SAFE>::deallocate(const PointerType &ptr, std::size_t) noexcept -> flex::memory::AllocatorErrorCode {
 		if (m_sharedState == _SharedStatePointer{} || m_sharedState->rbp == VoidPointerType{})
 			return flex::memory::AllocatorErrorCode::eStackNotInitialized;
-		if (ptr < m_sharedState->rbp || ptr >= m_sharedState->rsp)
+		if (ptr < static_cast<PointerType> (m_sharedState->rbp) || ptr >= static_cast<PointerType> (m_sharedState->rsp))
 			return flex::memory::AllocatorErrorCode::eStackInvalidPtr;
 		m_sharedState->rsp = ptr;
 		return flex::memory::AllocatorErrorCode::eSuccess;
@@ -126,9 +150,11 @@ namespace flex::memory {
 	template <typename ...Args>
 	auto StackAllocatorView<Allocator, THREAD_SAFE>::construct(const PointerType &ptr, Args &&...args) noexcept {
 		if constexpr (IS_ALLOCATOR_STORED)
-			return flex::memory::allocator_traits<Allocator>::construct(m_allocator, ptr, std::forward<Args> (args)...);
-		else
-			return flex::memory::allocator_traits<Allocator>::construct(Allocator{}, ptr, std::forward<Args> (args)...);
+			return flex::memory::allocator_traits<Allocator>::template construct<Args...> (m_allocator, ptr, std::forward<Args> (args)...);
+		else {
+			Allocator allocator {};
+			return flex::memory::allocator_traits<Allocator>::template construct<Args...> (allocator, ptr, std::forward<Args> (args)...);
+		}
 	}
 
 
@@ -136,8 +162,10 @@ namespace flex::memory {
 	auto StackAllocatorView<Allocator, THREAD_SAFE>::destroy(const PointerType &ptr) noexcept {
 		if constexpr (IS_ALLOCATOR_STORED)
 			return flex::memory::allocator_traits<Allocator>::destroy(m_allocator, ptr);
-		else
-			return flex::memory::allocator_traits<Allocator>::destroy(Allocator{}, ptr);
+		else {
+			Allocator allocator {};
+			return flex::memory::allocator_traits<Allocator>::destroy(allocator, ptr);
+		}
 	}
 
 
@@ -174,12 +202,17 @@ namespace flex::memory {
 			return std::unexpected{flex::memory::AllocatorErrorCode::eStackSharedStateAllocationFailure};
 		allocator.m_sharedState = std::move(shared_state_traits::getValue(sharedStateWithError));
 
-		flex::error_code auto sharedStateConstructResult {_shared_state_allocator_traits::construct(sharedStateAllocator, allocator.m_sharedState)};
-		if (!flex::error_type_traits<decltype(sharedStateConstructResult)>::isSuccess(sharedStateConstructResult))
-			return std::unexpected{flex::memory::AllocatorErrorCode::eStackSharedStateCreationFailure};
+		if constexpr (flex::memory::is_allocator_construct_failable_v<_SharedStateAllocator>) {
+			flex::error_code auto sharedStateConstructResult {_shared_state_allocator_traits::construct(sharedStateAllocator, allocator.m_sharedState)};
+			if (!flex::error_type_traits<decltype(sharedStateConstructResult)>::isSuccess(sharedStateConstructResult))
+				return std::unexpected{flex::memory::AllocatorErrorCode::eStackSharedStateCreationFailure};
+		}
+		else
+			_shared_state_allocator_traits::construct(sharedStateAllocator, allocator.m_sharedState);
 
 		++size;
-		flex::error_type auto blockWithError {_unified_allocator_traits::allocate(unifiedAllocator, sizeof(ValueType) * size)};
+		size *= sizeof(ValueType);
+		flex::error_type auto blockWithError {_unified_allocator_traits::allocate(unifiedAllocator, size)};
 		using block_state_traits = flex::error_type_traits<decltype(blockWithError)>;
 		if (!block_state_traits::hasValue(blockWithError))
 			return std::unexpected{flex::memory::AllocatorErrorCode::eStackBlockAllocationFailure};

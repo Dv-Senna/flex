@@ -6,6 +6,7 @@
 #include <optional>
 #include <type_traits>
 
+#include "flex/errorCode.hpp"
 #include "flex/errorType.hpp"
 #include "flex/typeTraits.hpp"
 
@@ -70,7 +71,7 @@ namespace flex::memory {
 		template <typename Alloc, typename Rebind>
 		concept allocator_with_custom_rebind_type = allocator<Alloc> && requires() {
 			typename Alloc::template RebindType<Rebind>;
-		} && allocator<typename Alloc::template RebindType<Rebind>>;
+		};
 
 
 		template <typename Alloc, typename Rebind>
@@ -80,9 +81,6 @@ namespace flex::memory {
 		struct rebind_allocator<Alloc<T, Args...>, Rebind> {
 			using type = Alloc<Rebind, Args...>;
 		};
-
-		template <typename Alloc, typename Rebind>
-		using rebind_allocator_t = typename rebind_allocator<Alloc, Rebind>::type;
 
 
 		template <typename Alloc>
@@ -151,15 +149,10 @@ namespace flex::memory {
 
 
 		template <allocator Alloc, typename Rebind, typename = void>
-		struct allocator_rebind : flex::type_constant<rebind_allocator_t<Alloc, Rebind>> {};
+		struct allocator_rebind : rebind_allocator<Alloc, Rebind> {};
 
 		template <typename Rebind, allocator_with_custom_rebind_type<Rebind> Alloc>
-		struct allocator_rebind<
-			Alloc, Rebind,
-			std::enable_if_t<
-				allocator_with_custom_rebind_type<Alloc, Rebind>
-			, void>
-		> : flex::type_constant<typename Alloc::template RebindType<Rebind>> {};
+		struct allocator_rebind<Alloc, Rebind, void> : flex::type_constant<typename Alloc::template RebindType<Rebind>> {};
 
 	} // namespace __internals
 
@@ -242,6 +235,19 @@ namespace flex::memory {
 
 	template <allocator T, typename U>
 	using allocator_rebind_t = typename allocator_traits<T>::template RebindType<U>;
+
+	template <allocator T, typename ...Args>
+	constexpr bool is_allocator_construct_failable_v = flex::error_code<decltype(allocator_traits<T>::construct(
+		std::declval<T&> (),
+		std::declval<allocator_pointer_t<T>> (),
+		std::declval<Args> ()...
+	))>;
+
+	template <allocator T>
+	constexpr bool is_allocator_destroy_failable_v = flex::error_code<decltype(allocator_traits<T>::destroy(
+		std::declval<T&> (),
+		std::declval<allocator_pointer_t<T>> ()
+	))>;
 
 	template <allocator T>
 	constexpr auto is_allocator_always_equal_v = allocator_traits<T>::IS_ALWAYS_EQUAL;
@@ -433,5 +439,7 @@ namespace flex::memory {
 	};
 
 	static_assert(allocator<Allocator<int>>);
+	static_assert(__internals::allocator_with_custom_rebind_type<Allocator<int>, float>);
+	static_assert(std::is_same_v<allocator_rebind_t<Allocator<int>, float>, Allocator<float>>);
 
 } // namespace flex::memory

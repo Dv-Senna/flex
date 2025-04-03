@@ -46,6 +46,10 @@ namespace flex::memory {
 			StackAllocatorView(_This &&allocator) noexcept;
 			auto operator=(_This &&allocator) noexcept -> _This&;
 
+			inline auto operator==(const _This &allocator) const noexcept -> bool {
+				return m_allocator == allocator.m_allocator && m_sharedState == allocator.m_sharedState;
+			}
+
 			static auto make(SizeType size) noexcept -> std::expected<_This, flex::memory::AllocatorErrorCode> requires (!IS_ALLOCATOR_STORED);
 			template <flex::memory::allocator Allocator2>
 			requires std::same_as<std::remove_cvref_t<Allocator2>, Allocator>

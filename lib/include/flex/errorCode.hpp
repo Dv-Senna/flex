@@ -14,6 +14,11 @@ namespace flex {
 		static constexpr auto isFailure(T code) noexcept -> bool;
 	};
 
+	template <>
+	struct error_code_traits<void> {
+		static constexpr bool IS_ERROR_CODE {false};
+	};
+
 	template <flex::enumeration T>
 	struct error_code_traits<T> {
 		static constexpr bool IS_ERROR_CODE {true};
