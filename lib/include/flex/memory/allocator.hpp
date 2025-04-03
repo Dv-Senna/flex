@@ -273,7 +273,15 @@ namespace flex::memory {
 		eStackUnifiedAllocatorRebindFailure,
 		eStackNotInitialized,
 		eStackTooSmall,
-		eStackInvalidPtr
+		eStackInvalidPtr,
+
+		ePoolSharedStateAllocationFailure,
+		ePoolSharedAllocatorRebindFailure,
+		ePoolBlockAllocationFailure,
+		ePoolSharedStateCreationFailure,
+		ePoolNotInitialized,
+		ePoolTooSmall,
+		ePoolInvalidPtr,
 	};
 
 	template <std_allocator T>
@@ -421,7 +429,7 @@ namespace flex::memory {
 
 			[[nodiscard]]
 			auto allocate(std::size_t n) const noexcept -> std::optional<PointerType> {
-				auto ptr {reinterpret_cast<PointerType> (std::malloc(sizeof(ValueType) * n))};
+				auto ptr {reinterpret_cast<PointerType> (std::aligned_alloc(alignof(T), sizeof(ValueType) * n))};
 				if (ptr == nullptr)
 					return std::nullopt;
 				return ptr;

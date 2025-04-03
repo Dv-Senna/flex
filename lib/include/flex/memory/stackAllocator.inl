@@ -184,8 +184,13 @@ namespace flex::memory {
 
 
 	template <flex::memory::allocator Allocator, bool THREAD_SAFE>
-	auto StackAllocatorView<Allocator, THREAD_SAFE>::copyOnContainerCopy() const noexcept -> std::optional<_This> {
-
+	auto StackAllocatorView<Allocator, THREAD_SAFE>::copyOnContainerCopy() const noexcept -> std::expected<_This, flex::memory::AllocatorErrorCode> {
+		if (m_sharedState == _SharedStatePointer{} || m_sharedState->size == 0)
+			return _This{};
+		if constexpr (IS_ALLOCATOR_STORED)
+			return _This::make(m_allocator, m_sharedState->size);
+		else
+			return _This::make(m_sharedState->size);
 	}
 
 

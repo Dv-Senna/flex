@@ -1,6 +1,7 @@
 #include <flex/memory/allocator.hpp>
 #include <flex/memory/stackAllocator.hpp>
 #include <flex/reflection/enums.hpp>
+#include <flex/memory/poolAllocator.hpp>
 
 #include <print>
 

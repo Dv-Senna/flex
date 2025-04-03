@@ -5,24 +5,22 @@
 #include <mutex>
 #include <type_traits>
 
-#include "flex/errorType.hpp"
 #include "flex/memory/allocator.hpp"
 #include "flex/typeTraits.hpp"
 
 
 namespace flex::memory {
-	template <flex::memory::allocator Allocator, bool THREAD_SAFE = false>
-	class StackAllocatorView final {
+	template <flex::memory::allocator Allocator>
+	class PoolAllocatorView final {
 		template <flex::memory::allocator, bool>
-		friend class StackAllocatorView;
+		friend class PoolAllocatorView;
 
 		struct _SharedState;
-		using _This = StackAllocatorView<Allocator, THREAD_SAFE>;
-		using _UnifiedAllocator = flex::memory::allocator_rebind_t<Allocator, std::byte>;
+		using _This = PoolAllocatorView<Allocator>;
 		using _SharedStateAllocator = flex::memory::allocator_rebind_t<Allocator, _SharedState>;
-		using _unified_allocator_traits = flex::memory::allocator_traits<_UnifiedAllocator>;
 		using _shared_state_allocator_traits = flex::memory::allocator_traits<_SharedStateAllocator>;
 		using _SharedStatePointer = flex::memory::allocator_pointer_t<_SharedStateAllocator>;
+		using _block_allocator_traits = flex::memory::allocator_traits<Allocator>;
 
 		static constexpr bool IS_ALLOCATOR_STORED = flex::memory::stateful_allocator<Allocator>;
 
@@ -35,15 +33,15 @@ namespace flex::memory {
 			using SizeType = flex::memory::allocator_size_t<Allocator>;
 			using DifferenceType = flex::memory::allocator_difference_t<Allocator>;
 			template <typename Rebind>
-			using RebindType = StackAllocatorView<flex::memory::allocator_rebind_t<Allocator, Rebind>, THREAD_SAFE>;
+			using RebindType = PoolAllocatorView<flex::memory::allocator_rebind_t<Allocator, Rebind>>;
 			static constexpr bool IS_ALWAYS_EQUAL = false;
 
-			StackAllocatorView() noexcept = default;
-			~StackAllocatorView();
+			PoolAllocatorView() noexcept = default;
+			~PoolAllocatorView();
 
-			StackAllocatorView(const _This &allocator) noexcept;
+			PoolAllocatorView(const _This &allocator) noexcept;
 			auto operator=(const _This &allocator) noexcept -> _This&;
-			StackAllocatorView(_This &&allocator) noexcept;
+			PoolAllocatorView(_This &&allocator) noexcept;
 			auto operator=(_This &&allocator) noexcept -> _This&;
 
 			inline auto operator==(const _This &allocator) const noexcept -> bool {
@@ -67,27 +65,22 @@ namespace flex::memory {
 
 			auto copyOnContainerCopy() const noexcept -> std::expected<_This, flex::memory::AllocatorErrorCode>;
 
+
 		private:
 			static auto s_make(
 				SizeType size,
 				_This &&allocator,
-				_SharedStateAllocator &&sharedStateAllocator,
-				_UnifiedAllocator &&unifiedAllocator
+				_SharedStateAllocator &&sharedStateAllocator
 			) noexcept -> std::expected<_This, flex::memory::AllocatorErrorCode>;
 
 			struct _SharedState {
-				[[no_unique_address]]
-				flex::enable_field_if_t<THREAD_SAFE, std::mutex> mutex;
-
-				VoidPointerType rbp;
-				VoidPointerType rsp;
-				std::conditional_t<THREAD_SAFE, std::atomic_int_fast32_t, int_fast32_t> instanceCount;
+				PointerType pool;
+				PointerType nextFree;
+				int_fast32_t instanceCount;
 				SizeType size;
 
 				[[no_unique_address]]
 				flex::enable_field_if_t<IS_ALLOCATOR_STORED, _SharedStateAllocator> sharedStateAllocator;
-				[[no_unique_address]]
-				flex::enable_field_if_t<IS_ALLOCATOR_STORED, _UnifiedAllocator> unifiedAllocator;
 			};
 
 			[[no_unique_address]]
@@ -97,8 +90,8 @@ namespace flex::memory {
 
 
 	template <typename T>
-	using StackAllocator = StackAllocatorView<flex::memory::Allocator<T>>;
+	using PoolAllocator = PoolAllocatorView<flex::memory::Allocator<T>>;
 
 } // namespace flex::memory
 
-#include "flex/memory/stackAllocator.inl"
+#include "flex/memory/poolAllocator.inl"
