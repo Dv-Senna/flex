@@ -260,7 +260,7 @@ namespace flex::memory {
 	concept stateless_allocator = allocator<T> && is_allocator_always_equal_v<T>;
 
 
-	enum AllocatorErrorCode {
+	enum class AllocatorErrorCode {
 		eSuccess = 0,
 		eFailure,
 		eAllocationFailure,
