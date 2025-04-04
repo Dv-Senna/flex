@@ -12,7 +12,7 @@
 namespace flex::memory {
 	template <flex::memory::allocator Allocator>
 	class PoolAllocatorView final {
-		template <flex::memory::allocator, bool>
+		template <flex::memory::allocator>
 		friend class PoolAllocatorView;
 
 		struct _SharedState;
@@ -61,7 +61,7 @@ namespace flex::memory {
 			auto destroy(const PointerType &ptr) noexcept;
 
 			template <typename Rebind>
-			auto rebind() const noexcept -> std::optional<RebindType<Rebind>>;
+			auto rebind() const noexcept -> std::expected<RebindType<Rebind>, flex::memory::AllocatorErrorCode>;
 
 			auto copyOnContainerCopy() const noexcept -> std::expected<_This, flex::memory::AllocatorErrorCode>;
 

@@ -77,13 +77,31 @@ namespace flex::memory {
 
 	template <flex::memory::allocator Allocator>
 	auto PoolAllocatorView<Allocator>::allocate(std::size_t n) noexcept -> std::expected<PointerType, flex::memory::AllocatorErrorCode> {
+		if (n != 1)
+			return std::unexpected(flex::memory::AllocatorErrorCode::ePoolAllocationSizeNotOne);
+		if (m_sharedState == _SharedStatePointer{})
+			return std::unexpected(flex::memory::AllocatorErrorCode::ePoolNotInitialized);
+		if (m_sharedState->nextFree == PointerType{})
+			return std::unexpected(flex::memory::AllocatorErrorCode::ePoolIsFull);
 
+		PointerType ptr {std::move(m_sharedState->nextFree)};
+		m_sharedState->nextFree = std::move(reinterpret_cast<PointerType> (*ptr));
+		return ptr;
 	}
 
 
 	template <flex::memory::allocator Allocator>
 	auto PoolAllocatorView<Allocator>::deallocate(const PointerType &ptr, std::size_t n) noexcept -> flex::memory::AllocatorErrorCode {
+		if (n != 1)
+			return flex::memory::AllocatorErrorCode::ePoolAllocationSizeNotOne;
+		if (m_sharedState == _SharedStatePointer{})
+			return flex::memory::AllocatorErrorCode::ePoolNotInitialized;
+		if (ptr < m_sharedState->pool || ptr >= m_sharedState->pool + m_sharedState->size)
+			return flex::memory::AllocatorErrorCode::ePoolInvalidPtr;
 
+		reinterpret_cast<PointerType&> (*ptr) = std::move(m_sharedState->nextFree);
+		m_sharedState->nextFree = ptr;
+		return flex::memory::AllocatorErrorCode::eSuccess;
 	}
 
 
@@ -112,8 +130,26 @@ namespace flex::memory {
 
 	template <flex::memory::allocator Allocator>
 	template <typename Rebind>
-	auto PoolAllocatorView<Allocator>::rebind() const noexcept -> std::optional<RebindType<Rebind>> {
-		return std::nullopt;
+	auto PoolAllocatorView<Allocator>::rebind() const noexcept -> std::expected<RebindType<Rebind>, flex::memory::AllocatorErrorCode> {
+		if constexpr (IS_ALLOCATOR_STORED) {
+			flex::error_type auto allocatorRebindWithError {_block_allocator_traits::template rebind<Rebind> (m_allocator)};
+			using allocator_rebind_traits = flex::error_type_traits<decltype(allocatorRebindWithError)>;
+			if (allocator_rebind_traits::hasValue(allocatorRebindWithError))
+				return std::unexpected(flex::memory::AllocatorErrorCode::ePoolBlockAllocatorRebindFailure);
+			flex::memory::allocator auto allocatorRebind {std::move(allocator_rebind_traits::getValue(allocatorRebindWithError))};
+
+			if (m_sharedState == _SharedStatePointer{}) {
+				RebindType<Rebind> rebindInstance {};
+				rebindInstance.m_allocator = std::move(allocatorRebind);
+				return rebindInstance;
+			}
+			return RebindType<Rebind>::make(std::move(allocatorRebind), m_sharedState->size);
+		}
+		else {
+			if (m_sharedState == _SharedStatePointer{})
+				return RebindType<Rebind> {};
+			return RebindType<Rebind>::make(m_sharedState->size);
+		}
 	}
 
 
@@ -161,6 +197,10 @@ namespace flex::memory {
 		allocator.m_sharedState->nextFree = allocator.m_sharedState->pool;
 		allocator.m_sharedState->instanceCount = 1;
 		allocator.m_sharedState->size = size;
+
+		for (SizeType i {0}; i < size - 1; ++i)
+			reinterpret_cast<PointerType&> (allocator.m_sharedState->pool[i]) = allocator.m_sharedState->pool + i + 1;
+		reinterpret_cast<PointerType&> (allocator.m_sharedState->pool[size - 1]) = PointerType{};
 
 		if constexpr (IS_ALLOCATOR_STORED)
 			allocator.m_sharedState->sharedStateAllocator = std::move(sharedStateAllocator);

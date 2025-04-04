@@ -280,8 +280,10 @@ namespace flex::memory {
 		ePoolBlockAllocationFailure,
 		ePoolSharedStateCreationFailure,
 		ePoolNotInitialized,
-		ePoolTooSmall,
+		ePoolIsFull,
 		ePoolInvalidPtr,
+		ePoolBlockAllocatorRebindFailure,
+		ePoolAllocationSizeNotOne,
 	};
 
 	template <std_allocator T>
