@@ -9,6 +9,7 @@
 #include <optional>
 #include <sstream>
 
+#include "flex/config.hpp"
 #include "flex/reflection/reflection.hpp"
 
 
@@ -219,7 +220,7 @@ class std::formatter<T, char> {
 				return ctx.end() - 1;
 			std::optional<std::size_t> widthWithError {flex::stoi<std::size_t> (args)};
 			if (!widthWithError)
-				throw std::format_error("The format part of reflectable must be a number");
+				FLEX_THROW(std::format_error("The format part of reflectable must be a number"));
 			m_width = *widthWithError;
 			return ctx.end() - 1;
 		}

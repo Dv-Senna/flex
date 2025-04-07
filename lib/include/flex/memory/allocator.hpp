@@ -6,6 +6,7 @@
 #include <optional>
 #include <type_traits>
 
+#include "flex/config.hpp"
 #include "flex/errorCode.hpp"
 #include "flex/errorType.hpp"
 #include "flex/typeTraits.hpp"
@@ -330,10 +331,10 @@ namespace flex::memory {
 
 			[[nodiscard]]
 			constexpr auto allocate(std::size_t n) noexcept -> std::optional<PointerType> {
-				try {
+				FLEX_TRY {
 					return std::allocator_traits<T>::allocate(this->m_getAllocator(), n);
 				}
-				catch (...) {
+				FLEX_CATCH (...) {
 					return std::nullopt;
 				}
 			};
@@ -343,11 +344,11 @@ namespace flex::memory {
 					std::allocator_traits<T>::deallocate(this->m_getAllocator(), ptr, n);
 				}
 				else {
-					try {
+					FLEX_TRY {
 						std::allocator_traits<T>::deallocate(this->m_getAllocator(), ptr, n);
 						return AllocatorErrorCode::eSuccess;
 					}
-					catch (...) {
+					FLEX_CATCH (...) {
 						return AllocatorErrorCode::eFailure;
 					}
 				}
@@ -356,21 +357,21 @@ namespace flex::memory {
 			template <typename ...Args>
 			[[nodiscard]]
 			constexpr auto construct(const PointerType &ptr, Args &&...args) noexcept -> AllocatorErrorCode {
-				try {
+				FLEX_TRY {
 					std::allocator_traits<T>::construct(this->m_getAllocator(), ptr, std::forward<Args> (args)...);
 					return AllocatorErrorCode::eSuccess;
 				}
-				catch (...) {
+				FLEX_CATCH (...) {
 					return AllocatorErrorCode::eFailure;
 				}
 			};
 
 			constexpr auto destroy(const PointerType &ptr) noexcept -> AllocatorErrorCode {
-				try {
+				FLEX_TRY {
 					std::allocator_traits<T>::destroy(this->m_getAllocator(), ptr);
 					return AllocatorErrorCode::eSuccess;
 				}
-				catch (...) {
+				FLEX_CATCH (...) {
 					return AllocatorErrorCode::eFailure;
 				}
 			};
@@ -379,10 +380,10 @@ namespace flex::memory {
 			template <typename Rebind>
 			[[nodiscard]]
 			constexpr auto rebind() const noexcept -> std::optional<RebindType<Rebind>> {
-				try {
+				FLEX_TRY {
 					return RebindType<Rebind> {*this};
 				}
-				catch (...) {
+				FLEX_CATCH (...) {
 					return std::nullopt;
 				}
 			}
@@ -390,10 +391,10 @@ namespace flex::memory {
 
 			[[nodiscard]]
 			constexpr auto copyOnContainerCopy() const noexcept -> std::optional<StandardAllocatorWrapper<T>> {
-				try {
+				FLEX_TRY {
 					return StandardAllocatorWrapper<T> {std::allocator_traits<T>::select_on_container_copy_construction(this->m_getAllocator())};
 				}
-				catch (...) {
+				FLEX_CATCH (...) {
 					return std::nullopt;
 				}
 			};
