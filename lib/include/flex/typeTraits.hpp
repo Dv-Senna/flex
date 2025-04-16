@@ -29,6 +29,25 @@ namespace flex{
 	};
 
 
+	template <typename T>
+	concept reference = std::is_reference_v<T>;
+
+	template <typename T>
+	concept pointer = std::is_pointer_v<T>;
+
+	template <typename T>
+	concept value = !reference<T> && !pointer<T>;
+
+	template <typename T>
+	concept value_or_pointer = value<T> || pointer<T>;
+
+	template <typename T>
+	concept value_or_reference = value<T> || reference<T>;
+
+	template <typename T>
+	concept pointer_or_reference = pointer<T> || reference<T>;
+
+
 	template <bool cond, typename T>
 	struct enable_field_if : type_constant<T> {};
 
