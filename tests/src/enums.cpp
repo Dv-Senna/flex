@@ -1,4 +1,5 @@
 #include <flex/reflection/enums.hpp>
+#include <flex/bitfield.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -29,4 +30,11 @@ TEST_CASE("macros", "[reflection]") {
 	REQUIRE(*flex::toString((SomeBitfield)0b001) == "eREAD");
 	REQUIRE(*flex::toString((SomeBitfield)0b010) == "eWRITE");
 	REQUIRE(*flex::toString((SomeBitfield)0b100) == "eEXEC");
+
+	flex::Bitfield<SomeBitfield> bitfield {SomeBitfield::eREAD | SomeBitfield::eEXEC};
+	REQUIRE(bitfield & SomeBitfield::eREAD);
+	REQUIRE(!(bitfield & SomeBitfield::eWRITE));
+	REQUIRE(bitfield & SomeBitfield::eEXEC);
+	REQUIRE(*flex::toString(bitfield) == "eREAD | eEXEC");
+	REQUIRE(!flex::toString(flex::Bitfield<SomeBitfield> {}));
 }
