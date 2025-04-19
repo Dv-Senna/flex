@@ -71,15 +71,16 @@ namespace flex {
 
 	template <flex::enumeration T>
 	constexpr auto toString(const Bitfield<T> &bitfield) noexcept -> std::optional<std::string> {
+		using Type = typename Bitfield<T>::Type;
 		if (!bitfield)
 			return std::nullopt;
 		std::string result {};
 		const auto size {
 			sizeof(typename Bitfield<T>::Type) * 8
-			- (std::is_unsigned_v<typename Bitfield<T>::Type> ? 0 : 1)
+			- (std::is_unsigned_v<Type> ? 0 : 1)
 		};
 		for (const auto i : std::views::iota(0uz, size)) {
-			const auto bit {static_cast<T> (1 << i)};
+			const auto bit {static_cast<T> (static_cast<Type> (1) << i)};
 			if (!(bitfield & bit))
 				continue;
 
