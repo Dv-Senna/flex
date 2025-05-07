@@ -11,7 +11,7 @@ namespace flex {
 		public:
 			constexpr Number() noexcept = default;
 			constexpr ~Number() = default;
-			explicit constexpr Number(T &&value) noexcept : m_value {value} {}
+			constexpr Number(T &&value) noexcept : m_value {value} {}
 
 			constexpr Number(const Self&) noexcept = default;
 			constexpr auto operator=(const Self&) noexcept -> Self& = default;
