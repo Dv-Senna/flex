@@ -33,7 +33,7 @@ namespace flex {
 
 			constexpr auto operator%(const Self &self) const noexcept -> Self requires (std::is_integral_v<T>) {return {m_value % self.m_value};}
 
-			constexpr operator T() const noexcept {return m_value;}
+			explicit constexpr operator T() const noexcept {return m_value;}
 
 
 		private:
