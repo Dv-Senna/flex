@@ -2,6 +2,7 @@
 
 #include <charconv>
 #include <concepts>
+#include <cstring>
 #include <format>
 #include <locale>
 #include <optional>
@@ -122,17 +123,15 @@ namespace flex::pipes {
 	}
 
 
-	template <typename ...Args>
 	struct __ToStringTag {
 		std::optional<std::locale> locale;
-		std::tuple<Args&&...> args;
 	};
 
-	constexpr TemplatePipeBase<__ToStringTag> to_string {};
+	constexpr PipeBase<__ToStringTag> to_string {};
 
-	template <flex::stringifyable T, typename ...Args, typename CleanT = std::remove_cvref_t<T>>
+	template <flex::stringifyable T, typename CleanT = std::remove_cvref_t<T>>
 	[[nodiscard]]
-	constexpr auto operator|(const std::optional<T> &optional, __ToStringTag<Args...> &&toStringTag) noexcept
+	constexpr auto operator|(const std::optional<T> &optional, __ToStringTag &&toStringTag) noexcept
 		-> std::optional<std::string>
 	{
 		if (!optional)
@@ -145,10 +144,7 @@ namespace flex::pipes {
 				char *ptr {nullptr};
 				do {
 					buffer.resize(buffer.size() + chunkSize);
-					auto &&func {[&](auto&& ...args) {
-						return std::to_chars(buffer.data(), buffer.data() + buffer.size(), *optional, args...);
-					}};
-					const auto [_ptr, _err] {std::apply(func, toStringTag.args)};
+					const auto [_ptr, _err] {std::to_chars(buffer.data(), buffer.data() + buffer.size(), *optional)};
 					err = _err;
 					ptr = _ptr;
 				} while (err == std::errc::value_too_large);
@@ -171,5 +167,38 @@ namespace flex::pipes {
 		}
 	}
 
+
+	template <flex::arithmetic T>
+	struct __ToNumberTag {
+		std::conditional_t<std::integral<T>, int, std::chars_format> args;
+	};
+
+	template <flex::arithmetic T>
+	constexpr PipeBase<__ToNumberTag<T>> to_number {};
+
+	template <typename T, flex::arithmetic Number, flex::string CleanT = std::remove_cvref_t<T>>
+	[[nodiscard]]
+	constexpr auto operator|(const std::optional<T> &optional, __ToNumberTag<Number> &&toNumberTag) noexcept
+		-> std::optional<Number>
+	{
+		if (!optional)
+			return std::nullopt;
+		const char *start {};
+		const char *end {};
+		if constexpr (std::same_as<std::string_view, CleanT> || std::same_as<std::string, CleanT>) {
+			start = optional->data();
+			end = start + optional->size();
+		}
+		else {
+			start = *optional;
+			end = std::strlen(*optional);
+		}
+		Number number {};
+		[[maybe_unused]]
+		const auto [ptr, err] {std::from_chars(start, end, number, toNumberTag.args)};
+		if (err != std::errc{})
+			return std::nullopt;
+		return number;
+	}
 
 } // namespace flex::pipes

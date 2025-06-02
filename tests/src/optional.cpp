@@ -12,8 +12,10 @@ int main() {
 				return std::nullopt;
 			return val * 1.01f;
 		})
-		| flex::pipes::to_string(std::nullopt, std::chars_format::fixed, 2)
-		| flex::pipes::value_or("invalid amount")
+		| flex::pipes::to_string()
+		| flex::pipes::to_number<float> ()
+		| flex::pipes::value_or(-1.f)
+//		| flex::pipes::value_or("invalid amount")
 	);
 
 	return 0;

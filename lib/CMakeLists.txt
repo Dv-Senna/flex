@@ -52,6 +52,14 @@ target_compile_definitions(flex_lib_header_only INTERFACE
 
 target_include_directories(flex_lib_header_only INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include ${FLEX_LIBRARY_AUTOGEN_INCLUDE_DIR})
 
+if (PROJECT_IS_TOP_LEVEL)
+	if (MSVC)
+		target_compile_options(flex_lib_header_only INTERFACE /W4)
+	else()
+		target_compile_options(flex_lib_header_only INTERFACE -Wall -Wextra -Wpedantic)
+	endif()
+endif()
+
 
 # library itself
 if (NOT FLEX_BUILD_HEADER_ONLY)
