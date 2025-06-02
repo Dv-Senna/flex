@@ -1,6 +1,7 @@
 #pragma once
 
 #include <limits>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <tuple>
@@ -253,6 +254,10 @@ namespace flex{
 
 
 	template <typename T>
+	concept arithmetic = std::is_arithmetic_v<T>;
+
+
+	template <typename T>
 	constexpr auto is_string_v = std::is_same_v<T, std::string_view>
 		|| std::is_same_v<T, std::string>
 		|| (std::is_array_v<T> && std::is_same_v<std::remove_const_t<std::remove_extent_t<T>>, char>)
@@ -262,7 +267,47 @@ namespace flex{
 	concept string = is_string_v<T>;
 
 
+	template <typename T, typename = void>
+	struct is_stringifyable : std::false_type {};
+
+	template <arithmetic T>
+	struct is_stringifyable<T> : std::true_type {};
+
+	template <string T>
+	struct is_stringifyable<T> : std::true_type {};
+
+	template <>
+	struct is_stringifyable<bool> : std::true_type {};
+
 	template <typename T>
-	concept arithmetic = std::is_arithmetic_v<T>;
+	constexpr auto is_stringifyable_v = is_stringifyable<T>::value;
+
+	template <typename T>
+	concept stringifyable = is_stringifyable_v<T>;
+
+
+
+	template <typename T>
+	struct is_optional : std::false_type {};
+
+	template <typename T>
+	struct is_optional<std::optional<T>> : std::true_type {};
+
+	template <typename T>
+	constexpr auto is_optional_v = is_optional<T>::value;
+
+	template <typename T>
+	concept optional = is_optional_v<T>;
+
+
+	template <typename T>
+	struct fully_unwrap_optional : flex::type_constant<T> {};
+
+	template <optional T>
+	struct fully_unwrap_optional<T> : flex::type_constant<typename fully_unwrap_optional<typename T::value_type>::type> {};
+
+	template <typename T>
+	using fully_unwrap_optional_t = typename fully_unwrap_optional<T>::type;
+
 
 } // namespace flex
