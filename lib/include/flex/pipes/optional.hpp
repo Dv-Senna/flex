@@ -6,6 +6,7 @@
 #include <format>
 #include <locale>
 #include <optional>
+#include <type_traits>
 #include <vector>
 
 #include "flex/typeTraits.hpp"
@@ -200,5 +201,39 @@ namespace flex::pipes {
 			return std::nullopt;
 		return number;
 	}
+
+
+	template <typename T>
+	requires std::same_as<T, std::remove_cvref_t<T>>
+	struct __ConvertToTag {};
+
+	template <typename To>
+	constexpr PipeBase<__ConvertToTag<To>> convert_to {};
+
+	template <typename From, typename To, std::convertible_to<To> CleanFrom = std::remove_cvref_t<From>>
+	[[nodiscard]]
+	constexpr auto operator|(const std::optional<From> &optional, __ConvertToTag<To>&&) noexcept
+		-> std::optional<To>
+	{
+		if (!optional)
+			return std::nullopt;
+		return static_cast<To> (*optional);
+	}
+
+
+	template <typename T>
+	requires std::same_as<T, std::remove_cvref_t<T>>
+	struct __ConstructToTag {};
+
+	template <typename To>
+	constexpr PipeBase<__ConstructToTag<To>> construct_to {};
+
+	template <typename From, std::constructible_from<From> To>
+	[[nodiscard]]
+	constexpr auto operator|(const std::optional<From> &optional, __ConstructToTag<To>&&) noexcept {
+		if (!optional)
+			return std::nullopt;
+		return To(*optional);
+	};
 
 } // namespace flex::pipes
