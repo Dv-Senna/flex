@@ -9,6 +9,7 @@
 #include <type_traits>
 #include <vector>
 
+#include "flex/pipes/pipes.hpp"
 #include "flex/typeTraits.hpp"
 
 
@@ -50,46 +51,30 @@ namespace flex::pipes {
 
 
 	template <typename Callback>
-	struct __TransformTag {
+	struct __TransformPipe : flex::pipes::BasicPipeObject<__TransformPipe<Callback>> {
+		constexpr __TransformPipe(Callback &&callback) noexcept : callback {std::move(callback)} {}
 		Callback &&callback;
+
+		template <typename T>
+		requires std::invocable<Callback, std::add_lvalue_reference_t<T>>
+		[[nodiscard]]
+		constexpr auto operator()(std::optional<T> &optional) noexcept
+			-> std::optional<flex::fully_unwrap_optional_t<std::remove_cvref_t<decltype(callback(*optional))>>>
+		{
+			using CallbackResult = std::remove_cvref_t<decltype(callback(*optional))>;
+			using Res = flex::fully_unwrap_optional_t<CallbackResult>;
+			if (!optional)
+				return std::optional<Res> {std::nullopt};
+			if constexpr (flex::optional<CallbackResult>)
+				return flatten(callback(*optional));
+			return callback(*optional);
+		}
 	};
 
 	template <typename Callback>
-	__TransformTag(Callback&&) -> __TransformTag<Callback>;
+	__TransformPipe(Callback&&) -> __TransformPipe<Callback>;
 
-	constexpr TemplatePipeBase<__TransformTag> transform {};
-
-	template <typename T, typename Callback>
-	requires std::invocable<Callback, std::add_lvalue_reference_t<T>>
-	[[nodiscard]]
-	constexpr auto operator|(std::optional<T> &optional, __TransformTag<Callback> &&transformTag) noexcept
-		-> std::optional<flex::fully_unwrap_optional_t<std::remove_cvref_t<decltype(transformTag.callback(*optional))>>>
-	{
-		auto callback {std::forward<Callback> (transformTag.callback)};
-		using CallbackResult = std::remove_cvref_t<decltype(callback(*optional))>;
-		using Res = flex::fully_unwrap_optional_t<CallbackResult>;
-		if (!optional)
-			return std::optional<Res> {std::nullopt};
-		if constexpr (flex::optional<CallbackResult>)
-			return flatten(callback(*optional));
-		return callback(*optional);
-	}
-
-	template <typename T, typename Callback>
-	requires std::invocable<Callback, std::add_lvalue_reference_t<std::add_const_t<T>>>
-	[[nodiscard]]
-	constexpr auto operator|(const std::optional<T> &optional, __TransformTag<Callback> &&transformTag) noexcept
-		-> std::optional<flex::fully_unwrap_optional_t<std::remove_cvref_t<decltype(transformTag.callback(*optional))>>>
-	{
-		auto callback {std::forward<Callback> (transformTag.callback)};
-		using CallbackResult = std::remove_cvref_t<decltype(callback(*optional))>;
-		using Res = flex::fully_unwrap_optional_t<CallbackResult>;
-		if (!optional)
-			return std::optional<Res> {std::nullopt};
-		if constexpr (flex::optional<CallbackResult>)
-			return flatten(callback(*optional));
-		return callback(*optional);
-	}
+	constexpr flex::pipes::TemplatedPipeAdaptator<__TransformPipe> transform {};
 
 
 	template <typename T>

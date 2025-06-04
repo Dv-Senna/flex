@@ -56,7 +56,7 @@ if (PROJECT_IS_TOP_LEVEL)
 	if (MSVC)
 		target_compile_options(flex_lib_header_only INTERFACE /W4)
 	else()
-		target_compile_options(flex_lib_header_only INTERFACE -Wall -Wextra -Wpedantic)
+		target_compile_options(flex_lib_header_only INTERFACE -Wall -Wextra -Wpedantic -fconcepts-diagnostics-depth=2)
 	endif()
 endif()
 
