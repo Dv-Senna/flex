@@ -46,6 +46,9 @@ namespace flex::pipes {
 	 * */
 
 
+	template <typename PipeObject>
+	class BasicPipeObject;
+
 	namespace __internals {
 		template <typename PipeObject, typename EntryType>
 		concept basic_pipe_header = std::same_as<PipeObject, std::remove_cvref_t<PipeObject>>
@@ -58,10 +61,8 @@ namespace flex::pipes {
 			{entry | pipe} -> std::same_as<decltype(pipe(entry))>;
 		};
 
-		template <typename PipeObject, typename EntryType>
-		concept incomplete_pipe = requires(PipeObject &&pipe, EntryType entry) {
-			pipe(entry);
-		};
+		template <typename PipeObject>
+		concept incomplete_pipe = std::is_base_of_v<BasicPipeObject<PipeObject>, PipeObject>;
 
 	} // namespace __internals
 
@@ -102,8 +103,7 @@ namespace flex::pipes {
 			auto operator=(This&&) -> This& = delete;
 	};
 
-	template <typename PipeObject, typename EntryType>
-	requires __internals::incomplete_pipe<PipeObject, EntryType>
+	template <__internals::incomplete_pipe PipeObject, typename EntryType>
 	constexpr auto operator|(EntryType &&entry, PipeObject &&pipeObject) noexcept {
 		return pipeObject(std::forward<EntryType> (entry));
 	}

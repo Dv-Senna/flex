@@ -50,33 +50,6 @@ namespace flex::pipes {
 	};
 
 
-	template <typename Callback>
-	struct __TransformPipe : flex::pipes::BasicPipeObject<__TransformPipe<Callback>> {
-		constexpr __TransformPipe(Callback &&callback) noexcept : callback {std::move(callback)} {}
-		Callback &&callback;
-
-		template <typename T>
-		requires std::invocable<Callback, std::add_lvalue_reference_t<T>>
-		[[nodiscard]]
-		constexpr auto operator()(std::optional<T> &optional) noexcept
-			-> std::optional<flex::fully_unwrap_optional_t<std::remove_cvref_t<decltype(callback(*optional))>>>
-		{
-			using CallbackResult = std::remove_cvref_t<decltype(callback(*optional))>;
-			using Res = flex::fully_unwrap_optional_t<CallbackResult>;
-			if (!optional)
-				return std::optional<Res> {std::nullopt};
-			if constexpr (flex::optional<CallbackResult>)
-				return flatten(callback(*optional));
-			return callback(*optional);
-		}
-	};
-
-	template <typename Callback>
-	__TransformPipe(Callback&&) -> __TransformPipe<Callback>;
-
-	constexpr flex::pipes::TemplatedPipeAdaptator<__TransformPipe> transform {};
-
-
 	template <typename T>
 	struct __ValueOrTag {
 		T &&value;
