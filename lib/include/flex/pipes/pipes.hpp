@@ -51,64 +51,42 @@ namespace flex::pipes {
 
 	namespace __internals {
 		template <typename PipeObject, typename EntryType>
-		concept basic_pipe_header = std::same_as<PipeObject, std::remove_cvref_t<PipeObject>>
-			&& std::same_as<EntryType, std::remove_cvref_t<EntryType>>
-			&& !std::is_fundamental_v<EntryType>;
-
-		template <typename PipeObject, typename EntryType>
-		concept basic_pipe_body = requires(PipeObject &&pipe, EntryType entry) {
+		concept incomplete_pipe = requires(PipeObject pipe, EntryType entry) {
 			pipe(entry);
-			{entry | pipe} -> std::same_as<decltype(pipe(entry))>;
 		};
-
-		template <typename PipeObject>
-		concept incomplete_pipe = std::is_base_of_v<BasicPipeObject<PipeObject>, PipeObject>;
 
 	} // namespace __internals
 
+
+	/**
+	 * @ingroup PipeObject
+	 * @brief A concept that modelise pipe object
+	 *
+	 * @warning Broken for now, as `entry | pipe` is considered invalid even when valid
+	 * */
 	template <typename PipeObject, typename EntryType>
-	concept const_rvalue_pipe = __internals::basic_pipe_header<PipeObject, EntryType>
-		&& __internals::basic_pipe_body<PipeObject, const EntryType&&>;
-
-	template <typename PipeObject, typename EntryType>
-	concept rvalue_pipe = __internals::basic_pipe_header<PipeObject, EntryType>
-		&& __internals::basic_pipe_body<PipeObject, EntryType&&>;
-
-	template <typename PipeObject, typename EntryType>
-	concept const_instance_pipe = __internals::basic_pipe_header<PipeObject, EntryType>
-		&& __internals::basic_pipe_body<PipeObject, const EntryType&>;
-
-	template <typename PipeObject, typename EntryType>
-	concept instance_pipe = __internals::basic_pipe_header<PipeObject, EntryType>
-		&& __internals::basic_pipe_body<PipeObject, EntryType&>;
-
-
-	template <typename PipeObject, typename EntryType>
-	concept pipe = const_rvalue_pipe<PipeObject, EntryType>
-		|| rvalue_pipe<PipeObject, EntryType>
-		|| const_instance_pipe<PipeObject, EntryType>
-		|| instance_pipe<PipeObject, EntryType>;
-
-
-	template <typename PipeObject>
-	class BasicPipeObject {
-		using This = BasicPipeObject<PipeObject>;
-		public:
-			constexpr BasicPipeObject() noexcept = default;
-			constexpr ~BasicPipeObject() noexcept = default;
-
-			BasicPipeObject(const This&) = delete;
-			auto operator=(const This&) -> This& = delete;
-			BasicPipeObject(This&&) = delete;
-			auto operator=(This&&) -> This& = delete;
+	concept pipe = !std::is_fundamental_v<std::remove_cvref_t<EntryType>>
+		&& requires(PipeObject &&pipe, EntryType entry)
+	{
+		pipe(entry);
+		{entry | pipe} -> std::same_as<decltype(pipe(entry))>;
 	};
 
-	template <__internals::incomplete_pipe PipeObject, typename EntryType>
+
+	/**
+	 * @ingroup PipeObject
+	 * @brief An overloading of pipe operator for incomplete pipe, that is pipe with only operator()
+	 * */
+	template <typename EntryType, __internals::incomplete_pipe<EntryType> PipeObject>
 	constexpr auto operator|(EntryType &&entry, PipeObject &&pipeObject) noexcept {
 		return pipeObject(std::forward<EntryType> (entry));
 	}
 
 
+	/**
+	 * @brief A wrapper type that allow the construction of *PipeObject*
+	 * @sa PipeObject
+	 * */
 	template <typename PipeObject>
 	class PipeAdaptator final {
 		using This = PipeAdaptator<PipeObject>;
@@ -121,6 +99,11 @@ namespace flex::pipes {
 			PipeAdaptator(This&&) = delete;
 			auto operator=(This&&) -> This& = delete;
 
+			/**
+			 * @ingroup PipeObject
+			 * @brief Construct the `PipeObject` from the given arguments
+			 * @param args The argument forwarded to the *PipeObject* constructor
+			 * */
 			template <typename ...Args>
 			requires std::constructible_from<PipeObject, Args...>
 			constexpr auto operator()(Args&& ...args) const noexcept {
@@ -128,6 +111,10 @@ namespace flex::pipes {
 			}
 	};
 
+	/**
+	 * @brief A wrapper type that allow the construction of templated *PipeObject*
+	 * @sa PipeObject
+	 * */
 	template <template <typename...> typename TemplatedPipeObject>
 	class TemplatedPipeAdaptator final {
 		using This = TemplatedPipeAdaptator<TemplatedPipeObject>;
@@ -140,6 +127,14 @@ namespace flex::pipes {
 			TemplatedPipeAdaptator(This&&) = delete;
 			auto operator=(This&&) -> This& = delete;
 
+			/**
+			 * @ingroup PipeObject
+			 * @brief Construct the `PipeObject` from the given arguments
+			 * @param args The argument forwarded to the *PipeObject* constructor
+			 * @note The template parameters of the given *PipeObject* are deduced from
+			 *       `std::forward<Args> (args)...`, so remember to provide deduction
+			 *       guide if needed.
+			 * */
 			template <typename ...Args>
 			constexpr auto operator()(Args&& ...args) const noexcept {
 				return TemplatedPipeObject{std::forward<Args> (args)...};
