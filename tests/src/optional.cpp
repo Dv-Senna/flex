@@ -5,6 +5,7 @@
 
 #include <flex/pipes/andThen.hpp>
 #include <flex/pipes/conversion.hpp>
+#include <flex/pipes/hasValue.hpp>
 #include <flex/pipes/transform.hpp>
 #include <flex/pipes/toNumber.hpp>
 #include <flex/pipes/toString.hpp>
@@ -20,6 +21,14 @@ enum class SomeEnum {
 	eA,
 	eB,
 	eC
+};
+
+struct A {
+	virtual auto hello() -> void {};
+};
+struct B : A {};
+struct C {
+	virtual auto hello() -> void {};
 };
 
 int main() {
@@ -60,6 +69,20 @@ int main() {
 		| flex::pipes::to_string()
 		| flex::pipes::value_or("<INVALID>")
 	);
+
+	A a {};
+	B b {};
+	C c {};
+
+	std::println("A->A : {}", a | flex::pipes::dynamic_cast_to<A&> () | flex::pipes::has_value());
+	std::println("A->B : {}", a | flex::pipes::dynamic_cast_to<B&> () | flex::pipes::has_value());
+	std::println("A->C : {}", a | flex::pipes::dynamic_cast_to<C&> () | flex::pipes::has_value());
+	std::println("B->A : {}", b | flex::pipes::dynamic_cast_to<A&> () | flex::pipes::has_value());
+	std::println("B->B : {}", b | flex::pipes::dynamic_cast_to<B&> () | flex::pipes::has_value());
+	std::println("B->C : {}", b | flex::pipes::dynamic_cast_to<C&> () | flex::pipes::has_value());
+	std::println("C->A : {}", c | flex::pipes::dynamic_cast_to<A&> () | flex::pipes::has_value());
+	std::println("C->B : {}", c | flex::pipes::dynamic_cast_to<B&> () | flex::pipes::has_value());
+	std::println("C->C : {}", c | flex::pipes::dynamic_cast_to<C&> () | flex::pipes::has_value());
 
 	return 0;
 }

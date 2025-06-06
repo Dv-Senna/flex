@@ -1,9 +1,9 @@
 #pragma once
 
 #include <any>
-#include <tuple>
 
 #include "flex/pipes/pipes.hpp"
+#include "flex/reference.hpp"
 #include "flex/typeTraits.hpp"
 
 
@@ -14,13 +14,19 @@ namespace flex::pipes {
 			constexpr StaticCastToPipe() noexcept = default;
 			constexpr ~StaticCastToPipe() = default;
 
+			template <typename U>
+			[[nodiscard]]
+			constexpr auto operator()(U &&value) noexcept {
+				return static_cast<T> (value);
+			}
+
 			template <typename Optional>
 			requires flex::optional<std::remove_cvref_t<Optional>>
 			[[nodiscard]]
 			constexpr auto operator()(Optional &&optional) noexcept -> std::optional<T> {
 				if (!optional)
 					return std::nullopt;
-				return static_cast<T> (*optional);
+				return (*this)(*optional);
 			}
 	};
 
@@ -34,13 +40,19 @@ namespace flex::pipes {
 			constexpr ReinterpretCastToPipe() noexcept = default;
 			constexpr ~ReinterpretCastToPipe() = default;
 
+			template <typename U>
+			[[nodiscard]]
+			constexpr auto operator()(U &&value) noexcept {
+				return reinterpret_cast<T> (value);
+			}
+
 			template <typename Optional>
 			requires flex::optional<std::remove_cvref_t<Optional>>
 			[[nodiscard]]
 			constexpr auto operator()(Optional &&optional) noexcept -> std::optional<T> {
 				if (!optional)
 					return std::nullopt;
-				return reinterpret_cast<T> (*optional);
+				return (*this)(*optional);
 			}
 	};
 
@@ -50,17 +62,43 @@ namespace flex::pipes {
 
 	template <typename T>
 	class DynamicCastToPipe final {
+		using ReturnType = std::conditional_t<flex::reference<T>,
+			flex::Reference<std::remove_reference_t<T>>,
+			T
+		>;
 		public:
 			constexpr DynamicCastToPipe() noexcept = default;
 			constexpr ~DynamicCastToPipe() = default;
 
+			template <typename U>
+			[[nodiscard]]
+			constexpr auto operator()(U &&value) noexcept -> std::optional<ReturnType> {
+				using Pointerify = std::conditional_t<flex::reference<T>,
+					std::add_pointer_t<std::remove_reference_t<T>>,
+					T
+				>;
+				Pointerify res {nullptr};
+				if constexpr (flex::reference<T>)
+					res = dynamic_cast<Pointerify> (&value);
+				else
+					res = dynamic_cast<T> (value);
+
+				if (res == nullptr)
+					return std::nullopt;
+
+				if constexpr (flex::reference<T>)
+					return ReturnType{*res};
+				else
+					return res;
+			}
+
 			template <typename Optional>
 			requires flex::optional<std::remove_cvref_t<Optional>>
 			[[nodiscard]]
-			constexpr auto operator()(Optional &&optional) noexcept -> std::optional<T> {
+			constexpr auto operator()(Optional &&optional) noexcept -> std::optional<ReturnType> {
 				if (!optional)
 					return std::nullopt;
-				return dynamic_cast<T> (*optional);
+				return (*this)(*optional);
 			}
 	};
 
