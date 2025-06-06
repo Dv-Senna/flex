@@ -55,6 +55,13 @@ namespace flex{
 	concept pointer_or_reference = pointer<T> || reference<T>;
 
 
+	template <typename T>
+	concept cv_reference = reference<T> || std::is_const_v<T> || std::is_volatile_v<T>;
+
+	template <typename T>
+	concept no_cv_reference = !cv_reference<T>;
+
+
 	template <bool cond, typename T>
 	struct enable_field_if : type_constant<T> {};
 
@@ -325,5 +332,11 @@ namespace flex{
 	template <bool COND, auto TRUE_VAL, auto FALSE_VAL>
 	constexpr auto conditional_value_v = conditional_value<COND, TRUE_VAL, FALSE_VAL>::value;
 
+
+	template <template <typename...> typename T, typename ...Args>
+	struct partial_template_apply {
+		template <typename ...Args2>
+		using type = T<Args..., Args2...>;
+	};
 
 } // namespace flex
