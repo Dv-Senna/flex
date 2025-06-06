@@ -145,13 +145,19 @@ namespace flex::pipes {
 			constexpr ConstructToPipe() noexcept = default;
 			constexpr ~ConstructToPipe() = default;
 
+			template <typename U>
+			[[nodiscard]]
+			constexpr auto operator()(U &&value) noexcept {
+				return T{value};
+			};
+
 			template <typename Optional>
 			requires flex::optional<std::remove_cvref_t<Optional>>
 			[[nodiscard]]
 			constexpr auto operator()(Optional &&optional) noexcept -> std::optional<T> {
 				if (!optional)
 					return std::nullopt;
-				return T{*optional};
+				return (*this)(*optional);
 			}
 	};
 

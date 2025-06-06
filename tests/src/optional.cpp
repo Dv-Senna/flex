@@ -33,7 +33,7 @@ struct C {
 
 int main() {
 	using namespace std::string_literals;
-	std::optional<float> opt {-1036.97f};
+	std::optional<float> opt {1036.97f};
 	std::println("Money : {}$ !", opt
 		| flex::pipes::and_then([](float val) -> std::optional<float> {
 			if (val < 0.f)

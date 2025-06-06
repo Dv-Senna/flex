@@ -12,7 +12,7 @@ namespace flex::pipes {
 	 *
 	 * ### Requirements
 	 * Given
-	 *     - `T`, `U` some non-fundamental, cv-unqualified, non-reference types
+	 *     - `T`, `U` some cv-unqualified, non-reference types
 	 *     - `P`, `Q` some *PipeObject*
 	 *     - `cp` an rvalue of `P`
 	 *     - `cq` an rvalue of `Q`
@@ -65,9 +65,7 @@ namespace flex::pipes {
 	 * @warning Broken for now, as `entry | pipe` is considered invalid even when valid
 	 * */
 	template <typename PipeObject, typename EntryType>
-	concept pipe = !std::is_fundamental_v<std::remove_cvref_t<EntryType>>
-		&& requires(PipeObject &&pipe, EntryType entry)
-	{
+	concept pipe = requires(PipeObject &&pipe, EntryType entry) {
 		pipe(entry);
 		{entry | pipe} -> std::same_as<decltype(pipe(entry))>;
 	};

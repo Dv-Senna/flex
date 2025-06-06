@@ -18,26 +18,20 @@ namespace flex::pipes {
 			constexpr ToNumberPipe(Args args = DEFAULT_ARGS) noexcept : m_args {args} {}
 			constexpr ~ToNumberPipe() = default;
 
-			template <typename Optional,
-				typename String = std::remove_cvref_t<typename std::remove_cvref_t<Optional>::value_type>
-			>
-			requires flex::optional<std::remove_cvref_t<Optional>>
-				&& flex::string<String>
+			template <typename String>
+			requires flex::string<std::remove_cvref_t<String>>
 			[[nodiscard]]
-			constexpr auto operator()(Optional &&optional) noexcept
-				-> std::optional<T>
-			{
-				if (!optional)
-					return std::nullopt;
+			constexpr auto operator()(String &&string) noexcept -> std::optional<T> {
+				using CleanString = std::remove_cvref_t<String>;
 				const char *start {};
 				const char *end {};
-				if constexpr (std::same_as<std::string_view, String> || std::same_as<std::string, String>) {
-					start = optional->data();
-					end = start + optional->size();
+				if constexpr (std::same_as<std::string_view, CleanString> || std::same_as<std::string, CleanString>) {
+					start = string.data();
+					end = start + string.size();
 				}
 				else {
-					start = *optional;
-					end = std::strlen(*optional);
+					start = string;
+					end = std::strlen(string);
 				}
 				T number {};
 				[[maybe_unused]]
@@ -45,6 +39,15 @@ namespace flex::pipes {
 				if (err != std::errc{})
 					return std::nullopt;
 				return number;
+			}
+
+			template <typename Optional>
+			requires flex::optional<std::remove_cvref_t<Optional>>
+			[[nodiscard]]
+			constexpr auto operator()(Optional &&optional) noexcept -> std::optional<T> {
+				if (!optional)
+					return std::nullopt;
+				return (*this)(*optional);
 			}
 
 		private:
