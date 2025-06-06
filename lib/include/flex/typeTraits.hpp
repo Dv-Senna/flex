@@ -29,6 +29,12 @@ namespace flex{
 		using type = T;
 	};
 
+	template <auto VALUE>
+	struct value_constant {
+		using value_type = decltype(VALUE);
+		static constexpr auto value = VALUE;
+	};
+
 
 	template <typename T>
 	concept reference = std::is_reference_v<T>;
@@ -308,6 +314,16 @@ namespace flex{
 
 	template <typename T>
 	using fully_unwrap_optional_t = typename fully_unwrap_optional<T>::type;
+
+
+	template <bool COND, auto TRUE_VAL, auto FALSE_VAL>
+	struct conditional_value : value_constant<FALSE_VAL> {};
+
+	template <auto TRUE_VAL, auto FALSE_VAL>
+	struct conditional_value<true, TRUE_VAL, FALSE_VAL> : value_constant<TRUE_VAL> {};
+
+	template <bool COND, auto TRUE_VAL, auto FALSE_VAL>
+	constexpr auto conditional_value_v = conditional_value<COND, TRUE_VAL, FALSE_VAL>::value;
 
 
 } // namespace flex

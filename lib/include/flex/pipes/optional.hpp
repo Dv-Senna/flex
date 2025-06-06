@@ -50,40 +50,6 @@ namespace flex::pipes {
 	};
 
 
-	template <flex::arithmetic T>
-	struct __ToNumberTag {
-		std::conditional_t<std::integral<T>, int, std::chars_format> args;
-	};
-
-	template <flex::arithmetic T>
-	constexpr PipeBase<__ToNumberTag<T>> to_number {};
-
-	template <typename T, flex::arithmetic Number, flex::string CleanT = std::remove_cvref_t<T>>
-	[[nodiscard]]
-	constexpr auto operator|(const std::optional<T> &optional, __ToNumberTag<Number> &&toNumberTag) noexcept
-		-> std::optional<Number>
-	{
-		if (!optional)
-			return std::nullopt;
-		const char *start {};
-		const char *end {};
-		if constexpr (std::same_as<std::string_view, CleanT> || std::same_as<std::string, CleanT>) {
-			start = optional->data();
-			end = start + optional->size();
-		}
-		else {
-			start = *optional;
-			end = std::strlen(*optional);
-		}
-		Number number {};
-		[[maybe_unused]]
-		const auto [ptr, err] {std::from_chars(start, end, number, toNumberTag.args)};
-		if (err != std::errc{})
-			return std::nullopt;
-		return number;
-	}
-
-
 	template <typename T>
 	requires std::same_as<T, std::remove_cvref_t<T>>
 	struct __ConvertToTag {};
