@@ -1,6 +1,8 @@
 #include <limits>
 #include <print>
 
+#include <flex/reflection/enums.hpp>
+
 #include <flex/pipes/andThen.hpp>
 #include <flex/pipes/conversion.hpp>
 #include <flex/pipes/transform.hpp>
@@ -12,6 +14,12 @@
 class Foo {
 	public:
 		Foo(int) {}
+};
+
+enum class SomeEnum {
+	eA,
+	eB,
+	eC
 };
 
 int main() {
@@ -45,7 +53,12 @@ int main() {
 		| flex::pipes::any_cast_to<int> ()
 		| flex::pipes::construct_to<Foo> ()
 		| flex::pipes::transform([](auto&&){return "FOO";})
-		| flex::pipes::value_or("INVALID")
+		| flex::pipes::value_or("<INVALID>")
+	);
+
+	std::println("Value as string from enum : {}", SomeEnum::eA
+		| flex::pipes::to_string()
+		| flex::pipes::value_or("<INVALID>")
 	);
 
 	return 0;

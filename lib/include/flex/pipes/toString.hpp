@@ -9,20 +9,22 @@
 #include "flex/typeTraits.hpp"
 
 
+namespace flex {
+	template <typename T>
+	auto toString();
+
+} // namespace flex
+
 namespace flex::pipes {
 	class ToStringPipe {
 		public:
 			constexpr ToStringPipe(std::optional<std::locale> locale = std::nullopt) noexcept : m_locale {locale} {}
 			constexpr ~ToStringPipe() = default;
 
-			template <typename Optional>
-			requires flex::optional<std::remove_cvref_t<Optional>>
+			template <typename Stringifyable>
 			[[nodiscard]]
-			constexpr auto operator()(Optional &&optional) noexcept -> std::optional<std::string> {
-				using T = std::remove_cvref_t<typename Optional::value_type>;
-				static_assert(flex::stringifyable<T>);
-				if (!optional)
-					return std::nullopt;
+			constexpr auto operator()(Stringifyable &&stringifyable) noexcept {
+				using T = std::remove_cvref_t<Stringifyable>;
 				if constexpr (flex::arithmetic<T>) {
 					if (!m_locale) {
 						constexpr std::size_t chunkSize {16};
@@ -31,27 +33,40 @@ namespace flex::pipes {
 						char *ptr {nullptr};
 						do {
 							buffer.resize(buffer.size() + chunkSize);
-							const auto [_ptr, _err] {std::to_chars(buffer.data(), buffer.data() + buffer.size(), *optional)};
+							const auto [_ptr, _err] {std::to_chars(buffer.data(), buffer.data() + buffer.size(), stringifyable)};
 							err = _err;
 							ptr = _ptr;
 						} while (err == std::errc::value_too_large);
 						return std::string{buffer.data(), ptr};
 					}
 					else
-						return std::format(*m_locale, "{}", *optional);
+						return std::format(*m_locale, "{}", stringifyable);
 				}
 				else if constexpr (flex::string<T>)
-					return std::string{*optional};
+					return std::string{stringifyable};
 				else if constexpr (std::same_as<T, char>) {
 					if (!m_locale) {
-						if (*optional)
+						if (stringifyable)
 							return "true";
 						else
 							return "false";
 					}
 					else
-						return std::format(*m_locale, "{}", *optional);
+						return std::format(*m_locale, "{}", stringifyable);
 				}
+				else
+					return flex::toString(stringifyable);
+			}
+
+			template <typename Optional>
+			requires flex::optional<std::remove_cvref_t<Optional>>
+			[[nodiscard]]
+			constexpr auto operator()(Optional &&optional) noexcept {
+				using Result = decltype((*this)(*optional));
+				using OptionalResult = std::conditional_t<flex::optional<Result>, Result, std::optional<Result>>;
+				if (!optional)
+					return OptionalResult{std::nullopt};
+				return OptionalResult{(*this)(*optional)};
 			}
 
 		private:

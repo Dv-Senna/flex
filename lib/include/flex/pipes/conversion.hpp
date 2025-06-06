@@ -92,7 +92,7 @@ namespace flex::pipes {
 			constexpr auto operator()(Optional &&optional) noexcept -> std::optional<T> {
 				if (!optional)
 					return std::nullopt;
-				return *this(*optional);
+				return (*this)(*optional);
 			}
 	};
 
