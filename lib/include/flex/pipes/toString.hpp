@@ -6,14 +6,9 @@
 #include <vector>
 
 #include "flex/pipes/pipes.hpp"
+#include "flex/reflection/enums.hpp"
 #include "flex/typeTraits.hpp"
 
-
-namespace flex {
-	template <typename T>
-	auto toString();
-
-} // namespace flex
 
 namespace flex::pipes {
 	class ToStringPipe {
