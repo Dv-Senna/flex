@@ -43,3 +43,6 @@ build/*
 *.sh
 *.bat
 *.ps1
+
+# Local stuffs
+.local/*

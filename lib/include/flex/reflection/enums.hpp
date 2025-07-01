@@ -2,10 +2,19 @@
 
 #include <array>
 #include <optional>
+#include <ranges>
 #include <string_view>
 #include <tuple>
 #include <type_traits>
 
+#ifdef __cpp_impl_reflection
+	#include <meta>
+#endif
+
+
+#ifdef __cpp_impl_reflection
+	#define FLEX_REFLECTION_DEPRECATION [[deprecated("This utility will be removed once reflection is more stable in C++26 and more used")]]
+#endif
 
 namespace flex {
 	template <typename T>
@@ -19,9 +28,10 @@ namespace flex {
 
 
 	template <enumeration T>
-	struct enum_max_size : std::integral_constant<std::size_t, FLEX_REFLECTION_MAX_ENUM_SIZE> {};
+	struct FLEX_REFLECTION_DEPRECATION enum_max_size : std::integral_constant<std::size_t, FLEX_REFLECTION_MAX_ENUM_SIZE> {};
 
 	template <enumeration T>
+	FLEX_REFLECTION_DEPRECATION
 	constexpr auto enum_max_size_v = enum_max_size<T>::value;
 
 
@@ -36,19 +46,21 @@ namespace flex {
 
 
 	template <enumeration T>
-	struct enum_value_generator {
+	struct FLEX_REFLECTION_DEPRECATION enum_value_generator {
 		static constexpr auto value {[](std::size_t val) constexpr {return static_cast<T> (val);}};
 		using value_type = decltype(value);
 	};
 
 	template <enumeration T>
+	FLEX_REFLECTION_DEPRECATION
 	constexpr auto enum_value_generator_v = enum_value_generator<T>::value;
 
 
 	template <enumeration T, T VALUE>
-	struct is_enum_member : std::bool_constant<!!__internals::getEnumName<T, VALUE> ()> {};
+	struct FLEX_REFLECTION_DEPRECATION is_enum_member : std::bool_constant<!!__internals::getEnumName<T, VALUE> ()> {};
 
 	template <enumeration T, T VALUE>
+	FLEX_REFLECTION_DEPRECATION
 	constexpr auto is_enum_member_v = is_enum_member<T, VALUE>::value;
 
 
@@ -102,12 +114,33 @@ namespace flex {
 			return std::apply(getArray, enum_members_generator_v<T>);
 		}
 
+	#ifdef __cpp_impl_reflection
+		template <enumeration T>
+		consteval auto getEnumMembers() {
+			constexpr auto enumerators {std::define_static_array(enumerators_of(^^T))};
+
+			std::array<PackedEnumName<T>, enumerators.size()> results {};
+			std::size_t i {0};
+			template for (constexpr auto e : enumerators) {
+				results[i++] = PackedEnumName<T> {
+					.value = [:e:],
+					.name = identifier_of(e)
+				};
+			}
+			return results;
+		};
+	#endif
+
 	} // namespace __internals
 
 
 	template <enumeration T>
 	struct enum_members {
+	#ifdef __cpp_impl_reflection
+		static constexpr auto value {__internals::getEnumMembers<T> ()};
+	#else
 		static constexpr auto value {__internals::enumTupleToArray<T> ()};
+	#endif
 		using value_type = decltype(value);
 	};
 
@@ -134,5 +167,9 @@ namespace flex {
 #define FLEX_SET_MAX_ENUM_SIZE(name, value) template <>\
 	struct flex::enum_max_size<name> : std::integral_constant<std::size_t, value> {}
 
+
+#ifdef __cpp_impl_reflection
+	#undef FLEX_REFLECTION_DEPRECATION
+#endif
 
 #include "flex/reflection/enums.inl"
