@@ -14,6 +14,8 @@
 
 #ifdef __cpp_impl_reflection
 	#define FLEX_REFLECTION_DEPRECATION [[deprecated("This utility will be removed once reflection is more stable in C++26 and more used")]]
+#else
+	#define FLEX_REFLECTION_DEPRECATION
 #endif
 
 namespace flex {
