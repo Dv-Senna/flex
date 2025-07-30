@@ -2,6 +2,12 @@
 
 #include <concepts>
 #include <cstddef>
+#include <source_location>
+#include <string_view>
+
+#ifdef __cpp_impl_reflection
+	#include <meta>
+#endif
 
 #include "flex/core/typeTraits.hpp"
 #include "flex/macros/macros.hpp"
@@ -14,7 +20,8 @@ namespace flex::reflection::aggregate {
 			template <typename ...Args>
 			static constexpr auto computeValue() noexcept -> std::size_t {
 			#ifdef __cpp_impl_reflection
-				#error C++26 reflection not implemented for now
+				constexpr auto ctx {std::meta::access_context::current()};
+				return nonstatic_data_members_of(^^T, ctx).size();
 			#else
 				if constexpr (std::constructible_from<T, flex::AnyTypePlaceholder, Args...>)
 					return computeValue<flex::AnyTypePlaceholder, Args...> ();
@@ -34,9 +41,7 @@ namespace flex::reflection::aggregate {
 
 	template <typename T>
 	constexpr auto getMemberTie(T& instance) noexcept {
-	#ifdef __cpp_impl_reflection
-		#error C++26 reflection not implemented for now
-	#elif defined(__cpp_structured_bindings) && __cpp_structured_bindings >= 202411L
+	#if defined(__cpp_structured_bindings) && __cpp_structured_bindings >= 202411L
 		auto& [...members] {instance};
 		return std::tie(members...);
 	#else
@@ -53,7 +58,7 @@ namespace flex::reflection::aggregate {
 			return std::tie(FLEX_REFLECTION_AGGREGATE_GET_MEMBER_TIE_PACK(__VA_ARGS__)); \
 		}
 
-		FLEX_MACROS_IOTA_FOR_BODY(16,
+		FLEX_MACROS_IOTA_FOR_BODY(FLEX_REFLECTION_MAX_MEMBERS_COUNT,
 			FLEX_REFLECTION_AGGREGATE_GET_MEMBER_TIE_BODY,
 			FLEX_MACROS_NULL
 		)
@@ -63,4 +68,73 @@ namespace flex::reflection::aggregate {
 	#undef FLEX_REFLECTION_AGGREGATE_GET_MEMBER_TIE_PACK_BODY
 	#endif
 	};
+
+
+	namespace internals {
+		template <typename T>
+		extern T fakeObject;
+
+		template <auto ptr>
+		consteval auto getRawMemberName() noexcept -> std::string_view {
+			return std::string_view{std::source_location::current().function_name()};
+		}
+
+		consteval auto stripRawMemberName(std::string_view name) noexcept -> std::string_view {
+			using namespace std::string_view_literals;
+		#if defined(__clang__)
+			name = {name.begin() + name.find("fakeObject.") + "fakeObject."sv.size(), name.end()};
+			name = {name.begin(), name.begin() + name.find("}]")};
+		#elif defined(__GNUC__)
+			name = {name.begin() + name.find("fakeObject") + "fakeObject"sv.size(), name.end()};
+			name = {name.begin(), name.begin() + name.find(")};")};
+			name = {name.begin() + name.rfind("::") + "::"sv.size(), name.end()};
+		#elif defined(_MSC_VER)
+			name = {name.begin() + name.find("->") + "->"sv.size(), name.end()};
+			name = {name.begin(), name.begin() + name.find("}")};
+		#endif
+			return name;
+		}
+
+		template <typename T>
+		struct PointerMemberWrapper {
+			T* ptr;
+		};
+
+		template <std::size_t N, typename T>
+		consteval auto makePointer() noexcept {
+			auto& member {std::get<N> (getMemberTie(fakeObject<T>))};
+			return PointerMemberWrapper<std::remove_reference_t<decltype(member)>> (&member);
+		}
+	}
+
+	template <typename T>
+	consteval auto getMemberNames() noexcept {
+		constexpr auto memberCount {member_count<T>::value};
+		std::array<std::string_view, memberCount> results {};
+	#ifdef __cpp_impl_reflection
+		constexpr auto ctx {std::meta::access_context::current()};
+		std::size_t i {0};
+		template for (constexpr auto member : std::define_static_array(nonstatic_data_members_of(^^T, ctx))) {
+			if constexpr (has_identifier(member))
+				results[i++] = std::string_view{identifier_of(member)};
+			else
+				results[i++] = "<unnamed>";
+		}
+	#else
+		auto loop {[&] <std::size_t I = 0> (auto& self) {
+			if constexpr (I + 1 < memberCount)
+				self.template operator() <I + 1> (self);
+		#ifdef __clang__
+			#pragma clang diagnostic push
+			#pragma clang diagnostic ignored "-Wundefined-var-template"
+		#endif
+			results[I] = internals::stripRawMemberName(internals::getRawMemberName<internals::makePointer<I, T> ()> ());
+		#ifdef __clang__
+			#pragma clang diagnostic pop
+		#endif
+		}};
+		loop(loop);
+	#endif
+		return results;
+	}
 }

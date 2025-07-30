@@ -56,5 +56,9 @@ auto main() -> int {
 		address.country
 	);
 
+	std::println("Name of Address's members:");
+	for (const auto name : flex::reflection::aggregate::getMemberNames<Address> ())
+		std::println("\t- '{}'", name);
+
 	return EXIT_SUCCESS;
 }
