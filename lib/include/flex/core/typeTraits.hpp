@@ -1,5 +1,6 @@
 #pragma once
 
+#include <concepts>
 #include <limits>
 #include <optional>
 #include <string>
@@ -70,21 +71,6 @@ namespace flex{
 
 	template <bool cond, typename T>
 	using enable_field_if_t = typename enable_field_if<cond, T>::type;
-
-
-	template <typename T, typename = void, typename ...Args>
-	struct is_aggregate_constructible : std::false_type {};
-
-	template <typename T, typename ...Args>
-	struct is_aggregate_constructible<T,
-		std::void_t<decltype(T{std::declval<Args> ()...})>
-	, Args...> : std::true_type {};
-
-	template <typename T, typename ...Args>
-	constexpr auto is_aggregate_constructible_v = is_aggregate_constructible<T, void, Args...>::value;
-
-	template <typename T, typename ...Args>
-	concept aggregate_constructible = is_aggregate_constructible<T, Args...>::value;
 
 
 	template <typename T>

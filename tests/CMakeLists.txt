@@ -30,7 +30,7 @@ endfunction()
 function(add_module_test MODULE)
 	cmake_parse_arguments(ARG "" "" "STANDARDS" ${ARGN})
 	if (NOT DEFINED ARG_STANDARDS)
-		set(ARG_STANDARDS 17)
+		set(ARG_STANDARDS 20)
 	endif()
 	list(LENGTH ARG_STANDARDS STANDARDS_LENGTH)
 	if (STANDARDS_LENGTH LESS 1)
@@ -51,7 +51,7 @@ endfunction()
 
 
 add_module_test(macros STANDARDS 23)
-add_module_test(reflection STANDARDS 17 20 23)
+add_module_test(reflection STANDARDS 20 23)
 
 
 add_custom_target(flex-tests

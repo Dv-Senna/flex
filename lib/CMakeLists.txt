@@ -1,7 +1,7 @@
 # common config stuff for all flex components
 add_library(flex-common-config INTERFACE)
 target_include_directories(flex-common-config INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_compile_features(flex-common-config INTERFACE cxx_std_17)
+target_compile_features(flex-common-config INTERFACE cxx_std_20)
 
 
 # macros component
@@ -11,6 +11,11 @@ target_link_libraries(flex-macros INTERFACE
 	flex-common-config
 	flex-autogen-macros
 )
+target_compile_definitions(flex-macros INTERFACE
+	FLEX_MACROS_MAX_VAR_TO_SEQ_COUNT=${FLEX_MACROS_MAX_VAR_TO_SEQ_COUNT}
+	FLEX_MACROS_MAX_INT_SEQ_SIZE=${FLEX_MACROS_MAX_INT_SEQ_SIZE}
+	FLEX_MACROS_FOR_LOOP_MAX_DEPTH=${FLEX_MACROS_FOR_LOOP_MAX_DEPTH}
+)
 
 
 # reflection component
@@ -19,6 +24,9 @@ add_library(flex::reflection ALIAS flex-reflection)
 target_link_libraries(flex-reflection INTERFACE
 	flex-common-config
 	flex-macros
+)
+target_compile_definitions(flex-reflection INTERFACE
+	FLEX_REFLECTION_MAX_MEMBERS_COUNT=${FLEX_REFLECTION_MAX_MEMBERS_COUNT}
 )
 
 

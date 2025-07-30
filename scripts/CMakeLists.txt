@@ -43,6 +43,14 @@ add_python_script(
 )
 add_python_script(
 	SCRIPT
+		${CMAKE_CURRENT_SOURCE_DIR}/macros_increment.py
+	OUTPUT
+		${CMAKE_CURRENT_BINARY_DIR}/macros/include/flex/macros/autogen/increment.hpp
+	VARIABLE
+		${FLEX_MACROS_MAX_INT_SEQ_SIZE}
+)
+add_python_script(
+	SCRIPT
 		${CMAKE_CURRENT_SOURCE_DIR}/macros_foreach_depth.py
 	OUTPUT
 		${CMAKE_CURRENT_BINARY_DIR}/macros/include/flex/macros/autogen/foreachDepth.hpp
@@ -63,6 +71,7 @@ add_custom_target(flex-generate-macros
 	DEPENDS
 		${CMAKE_CURRENT_BINARY_DIR}/macros/include/flex/macros/autogen/varToSeq.hpp
 		${CMAKE_CURRENT_BINARY_DIR}/macros/include/flex/macros/autogen/intSeq.hpp
+		${CMAKE_CURRENT_BINARY_DIR}/macros/include/flex/macros/autogen/increment.hpp
 		${CMAKE_CURRENT_BINARY_DIR}/macros/include/flex/macros/autogen/foreachDepth.hpp
 		${CMAKE_CURRENT_BINARY_DIR}/macros/include/flex/macros/autogen/iotaForDepth.hpp
 )
