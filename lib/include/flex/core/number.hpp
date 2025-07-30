@@ -1,6 +1,6 @@
 #pragma once
 
-#include "flex/typeTraits.hpp"
+#include "flex/core/typeTraits.hpp"
 
 
 namespace flex {

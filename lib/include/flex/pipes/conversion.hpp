@@ -2,9 +2,9 @@
 
 #include <any>
 
+#include "flex/core/reference.hpp"
+#include "flex/core/typeTraits.hpp"
 #include "flex/pipes/pipes.hpp"
-#include "flex/reference.hpp"
-#include "flex/typeTraits.hpp"
 
 
 namespace flex::pipes {

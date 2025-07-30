@@ -1,7 +1,7 @@
 #pragma once
 
-#include "flex/operatorTraits.hpp"
-#include "flex/typeTraits.hpp"
+#include "flex/core/operatorTraits.hpp"
+#include "flex/core/typeTraits.hpp"
 
 
 namespace flex {

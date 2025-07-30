@@ -37,10 +37,10 @@ namespace flex{
 
 
 	template <typename T>
-	concept reference = std::is_reference_v<T>;
+	concept reference = std::is_reference<T>::value;
 
 	template <typename T>
-	concept pointer = std::is_pointer_v<T>;
+	concept pointer = std::is_pointer<T>::value;
 
 	template <typename T>
 	concept value = !reference<T> && !pointer<T>;
@@ -56,7 +56,7 @@ namespace flex{
 
 
 	template <typename T>
-	concept cv_reference = reference<T> || std::is_const_v<T> || std::is_volatile_v<T>;
+	concept cv_reference = reference<T> || std::is_const<T>::value || std::is_volatile<T>::value;
 
 	template <typename T>
 	concept no_cv_reference = !cv_reference<T>;
@@ -84,11 +84,11 @@ namespace flex{
 	constexpr auto is_aggregate_constructible_v = is_aggregate_constructible<T, void, Args...>::value;
 
 	template <typename T, typename ...Args>
-	concept aggregate_constructible = is_aggregate_constructible_v<T, Args...>;
+	concept aggregate_constructible = is_aggregate_constructible<T, Args...>::value;
 
 
 	template <typename T>
-	concept aggregate = std::is_aggregate_v<T>;
+	concept aggregate = std::is_aggregate<T>::value;
 
 
 	template <typename T>
@@ -115,7 +115,7 @@ namespace flex{
 	constexpr auto is_tuple_v = is_tuple<T>::value;
 
 	template <typename T>
-	concept tuple = is_tuple_v<T>;
+	concept tuple = is_tuple<T>::value;
 
 
 	template <typename T, typename = void>
@@ -138,7 +138,7 @@ namespace flex{
 	constexpr auto is_pair_v = is_pair<T>::value;
 
 	template <typename T>
-	concept pair = is_pair_v<T>;
+	concept pair = is_pair<T>::value;
 
 
 	template <typename T>
@@ -296,7 +296,7 @@ namespace flex{
 	constexpr auto is_stringifyable_v = is_stringifyable<T>::value;
 
 	template <typename T>
-	concept stringifyable = is_stringifyable_v<T>;
+	concept stringifyable = is_stringifyable<T>::value;
 
 
 
@@ -310,7 +310,7 @@ namespace flex{
 	constexpr auto is_optional_v = is_optional<T>::value;
 
 	template <typename T>
-	concept optional = is_optional_v<T>;
+	concept optional = is_optional<T>::value;
 
 
 	template <typename T>

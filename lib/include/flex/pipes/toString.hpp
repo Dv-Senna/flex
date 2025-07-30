@@ -5,9 +5,9 @@
 #include <locale>
 #include <vector>
 
+#include "flex/core/typeTraits.hpp"
 #include "flex/pipes/pipes.hpp"
 #include "flex/reflection/enums.hpp"
-#include "flex/typeTraits.hpp"
 
 
 namespace flex::pipes {

@@ -1,7 +1,7 @@
 #pragma once
 
+#include "flex/core/typeTraits.hpp"
 #include "flex/pipes/pipes.hpp"
-#include "flex/typeTraits.hpp"
 
 
 namespace flex::pipes {

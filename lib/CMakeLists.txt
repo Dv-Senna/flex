@@ -13,24 +13,15 @@ target_link_libraries(flex-macros INTERFACE
 )
 
 
-
-# autogen files config
-set(FLEX_LIBRARY_SCRIPTS_DIR ${PROJECT_SOURCE_DIR}/scripts)
-set(FLEX_LIBRARY_AUTOGEN_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/include)
-
-set(FLEX_LIBRARY_AGGREGATE_MEMBERS_TUPLE_SCRIPTS ${FLEX_LIBRARY_SCRIPTS_DIR}/aggregate_members_tuple.py)
-set(FLEX_LIBRARY_AGGREGATE_MEMBERS_TUPLE_HEADER ${FLEX_LIBRARY_AUTOGEN_INCLUDE_DIR}/flex/reflection/autogen/aggregateMembersTuple.hpp)
-
-#add_custom_target(flex_lib_autogen ALL DEPENDS
-#	${FLEX_LIBRARY_AGGREGATE_MEMBERS_TUPLE_HEADER}
-#)
-
-# aggregate members tuple
-add_custom_command(
-	OUTPUT ${FLEX_LIBRARY_AGGREGATE_MEMBERS_TUPLE_HEADER}
-	COMMAND ${Python3_EXECUTABLE} ${FLEX_LIBRARY_AGGREGATE_MEMBERS_TUPLE_SCRIPTS} ${FLEX_LIBRARY_AGGREGATE_MEMBERS_TUPLE_HEADER} ${FLEX_REFLECTION_MAX_MEMBERS_COUNT}
-	DEPENDS ${FLEX_LIBRARY_AGGREGATE_MEMBERS_TUPLE_SCRIPTS}
+# reflection component
+add_library(flex-reflection INTERFACE)
+add_library(flex::reflection ALIAS flex-reflection)
+target_link_libraries(flex-reflection INTERFACE
+	flex-common-config
+	flex-macros
 )
+
+
 
 
 # header-only library
