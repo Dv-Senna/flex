@@ -6,7 +6,9 @@ if (NOT Python3_Interpreter_FOUND)
 	return()
 endif()
 
-add_custom_target(flex-generate-macros-var-to-seq
+add_custom_command(
+	OUTPUT
+		${CMAKE_CURRENT_BINARY_DIR}/macros/include/flex/macros/autogen/varToSeq.hpp
 	COMMAND
 		Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/macros_var_to_seq.py
 		${CMAKE_CURRENT_BINARY_DIR}/macros/include/flex/macros/autogen/varToSeq.hpp
@@ -15,9 +17,26 @@ add_custom_target(flex-generate-macros-var-to-seq
 		${CMAKE_CURRENT_SOURCE_DIR}/macros_var_to_seq.py
 )
 
+add_custom_command(
+	OUTPUT
+		${CMAKE_CURRENT_BINARY_DIR}/macros/include/flex/macros/autogen/intSeq.hpp
+	COMMAND
+		Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/macros_int_seq.py
+		${CMAKE_CURRENT_BINARY_DIR}/macros/include/flex/macros/autogen/intSeq.hpp
+		${FLEX_MACROS_MAX_INT_SEQ_SIZE}
+	DEPENDS
+		${CMAKE_CURRENT_SOURCE_DIR}/macros_int_seq.py
+)
+
+add_custom_target(flex-generate-macros
+	DEPENDS
+		${CMAKE_CURRENT_BINARY_DIR}/macros/include/flex/macros/autogen/varToSeq.hpp
+		${CMAKE_CURRENT_BINARY_DIR}/macros/include/flex/macros/autogen/intSeq.hpp
+)
+
 
 add_library(flex-autogen-macros INTERFACE)
 target_include_directories(flex-autogen-macros INTERFACE ${CMAKE_CURRENT_BINARY_DIR}/macros/include)
 add_dependencies(flex-autogen-macros
-	flex-generate-macros-var-to-seq
+	flex-generate-macros
 )
