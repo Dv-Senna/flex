@@ -21,6 +21,10 @@ MAKE_FLAG_ENUM(Access,
 );
 
 
+#define INNER_BODY(ctx, step_ctx, ...) __VA_ARGS__
+#define OUTER_BODY(ctx, step_ctx, ...) FLEX_MACROS_IOTA_FOR_BODY2(__VA_ARGS__, INNER_BODY, FLEX_MACROS_NULL)
+
+
 auto main(int, char**) -> int {
 	std::println("Enum definition : {}", FLEX_MACROS_STRINGIFY(
 		MAKE_FLAG_ENUM(Access,
@@ -34,6 +38,10 @@ auto main(int, char**) -> int {
 	std::println("Access::eWrite : {:b}", (std::uint32_t)Access::eWrite);
 	std::println("Access::eExecute: {:b}", (std::uint32_t)Access::eExecute);
 	std::println("Access::eBitMask : {:b}", (std::uint32_t)Access::eBitMask);
+
+	std::println("Two loops : {}", FLEX_MACROS_STRINGIFY(
+		FLEX_MACROS_IOTA_FOR_BODY_WITH_SEP(4, OUTER_BODY, FLEX_MACROS_COMMA, FLEX_MACROS_NULL)
+	));
 
 	std::println("Array: {}", FLEX_MACROS_STRINGIFY(FLEX_MACROS_IOTA_FOR_BODY_WITH_SEP(
 		16, PASS_THROUGH_BODY, FLEX_MACROS_COMMA, FLEX_MACROS_NULL
