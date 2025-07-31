@@ -67,5 +67,69 @@ namespace flex::reflection {
 		&& std::tuple_size<typename Traits::member_types>::value == Traits::member_count;
 
 	template <typename T>
-	concept reflectable = complete_reflection_traits<reflection_traits<T>>;
+	concept reflectable = complete_reflection_traits<reflection_traits<std::remove_reference_t<T>>>;
+
+
+	namespace internals {
+		template <typename T, typename Func,
+			std::unsigned_integral auto I = decltype(reflection_traits<T>::member_count) {0},
+			std::unsigned_integral auto N = reflection_traits<T>::member_count
+		>
+		struct is_foreach_member_func_noexcept : std::bool_constant<
+			noexcept(std::declval<Func> ()(reflection_traits<T>::template getMember<I> (
+				std::declval<std::add_lvalue_reference_t<T>> ()
+			)))
+			&& is_foreach_member_func_noexcept<T, Func, I + 1, N>::value
+		> {};
+
+		template <typename T, typename Func, std::unsigned_integral auto N>
+		struct is_foreach_member_func_noexcept<T, Func, N, N> : std::true_type {};
+
+
+		template <typename T, typename Func,
+			std::unsigned_integral auto I = decltype(reflection_traits<T>::member_count) {0},
+			std::unsigned_integral auto N = reflection_traits<T>::member_count
+		>
+		struct is_foreach_named_member_func_noexcept : std::bool_constant<
+			noexcept(std::declval<Func> ()(reflection_traits<T>::template getMember<I> (
+				std::declval<std::add_lvalue_reference_t<T>> ()
+			), std::declval<std::string_view> ()))
+			&& is_foreach_named_member_func_noexcept<T, Func, I + 1, N>::value
+		> {};
+
+		template <typename T, typename Func, std::unsigned_integral auto N>
+		struct is_foreach_named_member_func_noexcept<T, Func, N, N> : std::true_type {};
+	}
+
+	constexpr auto foreachMember(reflectable auto& instance, auto&& func) noexcept(
+		internals::is_foreach_member_func_noexcept<std::remove_reference_t<decltype(instance)>, decltype(func)>::value
+	) -> void {
+		using T = std::remove_reference_t<decltype(instance)>;
+		using CountT = decltype(reflection_traits<T>::member_count);
+		auto loop {[&] <std::unsigned_integral auto I = CountT{0}> (auto& loop) {
+			func(reflection_traits<T>::template getMember<I> (instance));
+			if constexpr (I + 1 < reflection_traits<T>::member_count)
+				loop.template operator() <I + 1> (loop);
+		}};
+		loop(loop);
+	}
+
+	constexpr auto foreachNamedMember(reflectable auto& instance, auto&& func) noexcept(
+		internals::is_foreach_named_member_func_noexcept<
+			std::remove_reference_t<decltype(instance)>,
+			decltype(func)
+		>::value
+	) -> void {
+		using T = std::remove_reference_t<decltype(instance)>;
+		using CountT = decltype(reflection_traits<T>::member_count);
+		auto loop {[&] <std::unsigned_integral auto I = CountT{0}> (auto& loop) {
+			func(
+				reflection_traits<T>::template getMember<I> (instance),
+				reflection_traits<T>::member_names[I]
+			);
+			if constexpr (I + 1 < reflection_traits<T>::member_count)
+				loop.template operator() <I + 1> (loop);
+		}};
+		loop(loop);
+	}
 }

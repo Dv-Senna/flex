@@ -23,6 +23,7 @@
 
 #include <flex/reflection/reflection.hpp>
 
+
 struct Address {
 	std::string street;
 	int number;
@@ -59,7 +60,7 @@ auto main() -> int {
 	flex::reflection::reflection_traits<Address>::getMember<3u> (address) = "Bern";
 	flex::reflection::reflection_traits<Address>::getMember<4u> (address) = "Switzerland";
 
-	std::println("Address: {} {}, {} {}, {}",
+/*	std::println("Address: {} {}, {} {}, {}",
 		address.street, address.number,
 		address.code, address.town,
 		address.country
@@ -67,7 +68,22 @@ auto main() -> int {
 
 	std::println("Name of Address's members:");
 	for (const auto name : flex::reflection::aggregate::getMemberNames<Address> ())
-		std::println("\t- '{}'", name);
+		std::println("\t- '{}'", name);*/
+	std::println("Address:");
+	flex::reflection::foreachNamedMember(address, [](auto& member, std::string_view name) {
+			std::println("\t- {:7} = {}", name, member);
+	});
+
+	static_assert(!noexcept(
+		flex::reflection::foreachNamedMember(address, [](auto& member, std::string_view name) {
+				std::println("\t- {:7} = {}", name, member);
+		})
+	));
+	static_assert(noexcept(
+		flex::reflection::foreachNamedMember(address, [](auto& member, std::string_view name) noexcept {
+				std::println("\t- {:7} = {}", name, member);
+		})
+	));
 
 	return EXIT_SUCCESS;
 }
