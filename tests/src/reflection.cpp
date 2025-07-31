@@ -69,16 +69,16 @@ auto main() -> int {
 	std::println("Name of Address's members:");
 	for (const auto name : flex::reflection::aggregate::getMemberNames<Address> ())
 		std::println("\t- '{}'", name);*/
-	std::println("Address:");
+	std::println("{}:", flex::reflection::reflection_traits<Address>::name);
 	flex::reflection::foreachNamedMember(address, [](auto& member, std::string_view name) {
 		std::println("\t- {:7} = {}", name, member);
 	});
 
 	static_assert(!noexcept(
-		flex::reflection::foreachNamedMember(address, [](auto& member, std::string_view name) {})
+		flex::reflection::foreachNamedMember(address, [](auto&, std::string_view) {})
 	));
 	static_assert(noexcept(
-		flex::reflection::foreachNamedMember(address, [](auto& member, std::string_view name) noexcept {})
+		flex::reflection::foreachNamedMember(address, [](auto&, std::string_view) noexcept {})
 	));
 
 	return EXIT_SUCCESS;

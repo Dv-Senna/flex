@@ -17,6 +17,7 @@ namespace flex::reflection {
 	template <flex::aggregate T>
 	struct reflection_traits<T> {
 		using type = T;
+		static constexpr auto name {flex::reflection::aggregate::getTypeName<T> ()};
 		static constexpr auto member_count {flex::reflection::aggregate::member_count<T>::value};
 		static constexpr auto member_names {flex::reflection::aggregate::getMemberNames<T> ()};
 		using member_types = flex::reflection::aggregate::get_member_types_t<T>;
@@ -57,6 +58,7 @@ namespace flex::reflection {
 	template <typename Traits>
 	concept complete_reflection_traits = requires(typename Traits::type instance) {
 		typename Traits::type;
+		{Traits::name} -> std::convertible_to<std::string_view>;
 		{Traits::member_count} -> internals::unsigned_integral;
 		{Traits::member_names} -> internals::array_of_type<std::string_view>;
 		typename Traits::member_types;
