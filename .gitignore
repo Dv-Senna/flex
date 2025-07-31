@@ -46,3 +46,6 @@ build/*
 
 # Local stuffs
 .local/*
+
+# dependencies
+vendors/Catch2

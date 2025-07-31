@@ -30,6 +30,17 @@ target_compile_definitions(flex-reflection INTERFACE
 )
 
 
+# enums component
+add_library(flex-enums INTERFACE)
+add_library(flex::enums ALIAS flex-enums)
+target_link_libraries(flex-enums INTERFACE
+	flex-common-config
+)
+target_compile_definitions(flex-enums INTERFACE
+	FLEX_ENUMS_MAX_DEFAULT_ENUM_SIZE=${FLEX_ENUMS_MAX_DEFAULT_ENUM_SIZE}
+)
+
+
 
 
 # header-only library

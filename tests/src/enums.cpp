@@ -1,8 +1,10 @@
-#include <flex/reflection/enums.hpp>
-#include <flex/bitfield.hpp>
+#include <flex/enums/enums.hpp>
+#include <flex/core/bitfield.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
+
+enum UnscoppedEnum {};
 
 enum class SomeEnum {
 	eA,
@@ -16,6 +18,10 @@ enum class SomeBitfield {
 	eWRITE = 0b010,
 	eEXEC = 0b100,
 };
+
+static_assert(!flex::scoped_enumeration<UnscoppedEnum>);
+static_assert(flex::scoped_enumeration<SomeEnum>);
+static_assert(flex::scoped_enumeration<SomeBitfield>);
 
 
 #ifndef __cpp_impl_reflection

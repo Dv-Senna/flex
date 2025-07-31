@@ -4,7 +4,7 @@
 #include <string>
 #include <print>
 
-#include "flex/reflection/enums.hpp"
+#include "flex/enums/enums.hpp"
 
 
 namespace flex {
@@ -30,17 +30,35 @@ namespace flex {
 			constexpr auto operator==(T value) const noexcept -> bool {return m_value == static_cast<Type> (value);}
 			constexpr operator bool() const noexcept {return !!m_value;}
 
-			constexpr auto operator&=(const Bitfield<T> &bitfield) noexcept -> Bitfield<T>& {m_value &= bitfield.m_value; return *this;}
-			constexpr auto operator|=(const Bitfield<T> &bitfield) noexcept -> Bitfield<T>& {m_value |= bitfield.m_value; return *this;}
-			constexpr auto operator^=(const Bitfield<T> &bitfield) noexcept -> Bitfield<T>& {m_value ^= bitfield.m_value; return *this;}
+			constexpr auto operator&=(const Bitfield<T> &bitfield) noexcept -> Bitfield<T>& {
+				m_value &= bitfield.m_value; return *this;
+			}
+			constexpr auto operator|=(const Bitfield<T> &bitfield) noexcept -> Bitfield<T>& {
+				m_value |= bitfield.m_value; return *this;
+			}
+			constexpr auto operator^=(const Bitfield<T> &bitfield) noexcept -> Bitfield<T>& {
+				m_value ^= bitfield.m_value; return *this;
+			}
 
-			constexpr auto operator&=(T value) noexcept -> Bitfield<T>& {m_value &= static_cast<Type> (value); return *this;}
-			constexpr auto operator|=(T value) noexcept -> Bitfield<T>& {m_value |= static_cast<Type> (value); return *this;}
-			constexpr auto operator^=(T value) noexcept -> Bitfield<T>& {m_value ^= static_cast<Type> (value); return *this;}
+			constexpr auto operator&=(T value) noexcept -> Bitfield<T>& {
+				m_value &= static_cast<Type> (value); return *this;
+			}
+			constexpr auto operator|=(T value) noexcept -> Bitfield<T>& {
+				m_value |= static_cast<Type> (value); return *this;
+			}
+			constexpr auto operator^=(T value) noexcept -> Bitfield<T>& {
+				m_value ^= static_cast<Type> (value); return *this;
+			}
 
-			constexpr auto operator&(const Bitfield<T> &bitfield) const noexcept -> Bitfield<T> {auto tmp {*this}; return tmp &= bitfield;}
-			constexpr auto operator|(const Bitfield<T> &bitfield) const noexcept -> Bitfield<T> {auto tmp {*this}; return tmp |= bitfield;}
-			constexpr auto operator^(const Bitfield<T> &bitfield) const noexcept -> Bitfield<T> {auto tmp {*this}; return tmp ^= bitfield;}
+			constexpr auto operator&(const Bitfield<T> &bitfield) const noexcept -> Bitfield<T> {
+				auto tmp {*this}; return tmp &= bitfield;
+			}
+			constexpr auto operator|(const Bitfield<T> &bitfield) const noexcept -> Bitfield<T> {
+				auto tmp {*this}; return tmp |= bitfield;
+			}
+			constexpr auto operator^(const Bitfield<T> &bitfield) const noexcept -> Bitfield<T> {
+				auto tmp {*this}; return tmp ^= bitfield;
+			}
 
 			constexpr auto operator&(T value) const noexcept -> Bitfield<T> {auto tmp {*this}; return tmp &= value;}
 			constexpr auto operator|(T value) const noexcept -> Bitfield<T> {auto tmp {*this}; return tmp |= value;}
@@ -79,7 +97,7 @@ namespace flex {
 			sizeof(typename Bitfield<T>::Type) * 8
 			- (std::is_unsigned_v<Type> ? 0 : 1)
 		};
-		for (const auto i : std::views::iota(0uz, size)) {
+		for (const auto i : std::views::iota(std::size_t{0}, size)) {
 			const auto bit {static_cast<T> (static_cast<Type> (1) << i)};
 			if (!(bitfield & bit))
 				continue;

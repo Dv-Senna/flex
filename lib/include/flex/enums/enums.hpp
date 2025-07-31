@@ -7,63 +7,68 @@
 #include <tuple>
 #include <type_traits>
 
+#include "flex/core/config.hpp"
+
 #ifdef __cpp_impl_reflection
 	#include <meta>
 #endif
 
 
-#ifdef __cpp_impl_reflection
-	#define FLEX_REFLECTION_DEPRECATION [[deprecated("This utility will be removed once reflection is more stable" \
-			"in C++26 and more used")]]
-#else
-	#define FLEX_REFLECTION_DEPRECATION
-#endif
-
 namespace flex {
 	template <typename T>
 	concept enumeration = std::is_enum_v<T>;
 
+#if defined(__cpp_lib_is_scoped_enum) && __cpp_lib_is_scoped_enum >= 202011L
 	template <typename T>
-	concept scoped_enumeration = std::is_scoped_enum_v<T>;
+	concept scoped_enumeration = std::is_scoped_enum<T>::value;
+#else
+	namespace internals {
+		auto testScopedEnumConversion(...);
+		auto testScopedEnumConversion(int) = delete;
+	}
+
+	// implementation taken from https://en.cppreference.com/w/cpp/types/is_scoped_enum.html
+	template <typename T>
+	concept scoped_enumeration = enumeration<T>
+		&& !std::is_convertible<T, typename std::underlying_type<T>::type>::value;
+#endif
+
 
 	template <typename T>
 	concept unscoped_enumeration = enumeration<T> && !scoped_enumeration<T>;
 
 
 	template <enumeration T>
-	struct FLEX_REFLECTION_DEPRECATION enum_max_size : std::integral_constant<std::size_t, FLEX_REFLECTION_MAX_ENUM_SIZE> {};
+	struct enum_max_size : std::integral_constant<std::size_t, FLEX_ENUMS_MAX_DEFAULT_ENUM_SIZE> {};
 
 	template <enumeration T>
-	FLEX_REFLECTION_DEPRECATION
 	constexpr auto enum_max_size_v = enum_max_size<T>::value;
 
 
-	namespace __internals {
+	namespace internals {
 		template <scoped_enumeration T, T VALUE>
 		consteval auto getEnumName() noexcept -> std::optional<std::string_view>;
 
 		template <unscoped_enumeration T, T VALUE>
 		consteval auto getEnumName() noexcept -> std::optional<std::string_view>;
 
-	} // namespace __internals
+	} // namespace internals
 
 
 	template <enumeration T>
-	struct FLEX_REFLECTION_DEPRECATION enum_value_generator {
+	struct enum_value_generator {
 		static constexpr auto value {[](std::size_t val) constexpr {return static_cast<T> (val);}};
 		using value_type = decltype(value);
 	};
 
 	template <enumeration T>
-	FLEX_REFLECTION_DEPRECATION
 	constexpr auto enum_value_generator_v = enum_value_generator<T>::value;
 
 
 	template <enumeration T, T VALUE>
-	struct FLEX_REFLECTION_DEPRECATION is_enum_member : std::bool_constant<!!__internals::getEnumName<T, VALUE> ()> {};
+	struct is_enum_member : std::bool_constant<!!internals::getEnumName<T, VALUE> ()> {};
 
 	template <enumeration T, T VALUE>
-	FLEX_REFLECTION_DEPRECATION
 	constexpr auto is_enum_member_v = is_enum_member<T, VALUE>::value;
 
 
@@ -74,7 +79,7 @@ namespace flex {
 	};
 
 
-	namespace __internals {
+	namespace internals {
 		template <
 			enumeration T,
 			std::size_t INDEX = 0,
@@ -83,7 +88,10 @@ namespace flex {
 		>
 		struct enum_members_generator {
 			static constexpr std::tuple value {std::tuple_cat(
-				std::make_tuple(PackedEnumName<T> {enum_value_generator_v<T> (INDEX), *__internals::getEnumName<T, enum_value_generator_v<T> (INDEX)> ()}),
+				std::make_tuple(PackedEnumName<T> {
+					enum_value_generator_v<T> (INDEX),
+					*internals::getEnumName<T, enum_value_generator_v<T> (INDEX)> ()
+				}),
 				enum_members_generator<T, INDEX+1>::value
 			)};
 			using value_type = decltype(value);
@@ -113,7 +121,9 @@ namespace flex {
 
 		template <enumeration T>
 		constexpr auto enumTupleToArray() {
-			constexpr auto getArray {[](auto &&...values) constexpr {return std::array{std::forward<decltype(values)> (values)...};}};
+			constexpr auto getArray {[](auto &&...values) constexpr {
+				return std::array{std::forward<decltype(values)> (values)...};
+			}};
 			return std::apply(getArray, enum_members_generator_v<T>);
 		}
 
@@ -134,15 +144,15 @@ namespace flex {
 		};
 	#endif
 
-	} // namespace __internals
+	} // namespace internals
 
 
 	template <enumeration T>
 	struct enum_members {
 	#ifdef __cpp_impl_reflection
-		static constexpr auto value {__internals::getEnumMembers<T> ()};
+		static constexpr auto value {internals::getEnumMembers<T> ()};
 	#else
-		static constexpr auto value {__internals::enumTupleToArray<T> ()};
+		static constexpr auto value {internals::enumTupleToArray<T> ()};
 	#endif
 		using value_type = decltype(value);
 	};
@@ -175,4 +185,4 @@ namespace flex {
 	#undef FLEX_REFLECTION_DEPRECATION
 #endif
 
-#include "flex/reflection/enums.inl"
+#include "flex/enums/enums.inl"

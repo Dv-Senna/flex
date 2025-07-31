@@ -17,7 +17,7 @@ function(add_test TARGET)
 	set(TEST_TARGETS ${TEST_TARGETS} PARENT_SCOPE)
 
 	add_executable(${TARGET_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/src/${TARGET}.cpp)
-	target_link_libraries(${TARGET_NAME} PRIVATE ${ARG_MODULES})
+	target_link_libraries(${TARGET_NAME} PRIVATE ${ARG_MODULES} Catch2::Catch2WithMain)
 	target_compile_features(${TARGET_NAME} PRIVATE cxx_std_${ARG_STANDARD})
 
 	if (MSVC)
@@ -52,6 +52,7 @@ endfunction()
 
 add_module_test(macros STANDARDS 23)
 add_module_test(reflection STANDARDS 20 23)
+add_module_test(enums STANDARDS 20 23)
 
 
 add_custom_target(flex-tests

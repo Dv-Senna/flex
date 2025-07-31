@@ -1,6 +1,6 @@
-#include <array>
-#include <cinttypes>
-#include <print>
+#include <utility>
+
+#include <catch2/catch_test_macros.hpp>
 
 #include <flex/macros/macros.hpp>
 
@@ -24,27 +24,7 @@ MAKE_FLAG_ENUM(Access,
 #define INNER_BODY(ctx, step_ctx, ...) __VA_ARGS__
 #define OUTER_BODY(ctx, step_ctx, ...) FLEX_MACROS_IOTA_FOR_BODY2(__VA_ARGS__, INNER_BODY, FLEX_MACROS_NULL)
 
-
-auto main(int, char**) -> int {
-	std::println("Enum definition : {}", FLEX_MACROS_STRINGIFY(
-		MAKE_FLAG_ENUM(Access,
-			eRead,
-			eWrite,
-			eExecute
-		)
-	));
-
-	std::println("Access::eRead : {:b}", (std::uint32_t)Access::eRead);
-	std::println("Access::eWrite : {:b}", (std::uint32_t)Access::eWrite);
-	std::println("Access::eExecute: {:b}", (std::uint32_t)Access::eExecute);
-	std::println("Access::eBitMask : {:b}", (std::uint32_t)Access::eBitMask);
-
-	std::println("Two loops : {}", FLEX_MACROS_STRINGIFY(
-		FLEX_MACROS_IOTA_FOR_BODY_WITH_SEP(4, OUTER_BODY, FLEX_MACROS_COMMA, FLEX_MACROS_NULL)
-	));
-
-	std::println("Array: {}", FLEX_MACROS_STRINGIFY(FLEX_MACROS_IOTA_FOR_BODY_WITH_SEP(
-		16, PASS_THROUGH_BODY, FLEX_MACROS_COMMA, FLEX_MACROS_NULL
-	)));
-	return 0;
-}
+static_assert(std::to_underlying(Access::eRead) == 0b001);
+static_assert(std::to_underlying(Access::eWrite) == 0b010);
+static_assert(std::to_underlying(Access::eExecute) == 0b100);
+static_assert(std::to_underlying(Access::eBitMask) == 0b111);

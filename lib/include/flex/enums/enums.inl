@@ -1,12 +1,12 @@
 #pragma once
 
-#include "flex/reflection/enums.hpp"
+#include "flex/enums/enums.hpp"
 
 #include <source_location>
 
 
 namespace flex {
-	namespace __internals {
+	namespace internals {
 		template <scoped_enumeration T, T VALUE>
 		consteval auto getEnumName() noexcept -> std::optional<std::string_view> {
 			using namespace std::string_view_literals;
