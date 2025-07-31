@@ -325,4 +325,10 @@ namespace flex{
 		using type = T<Args..., Args2...>;
 	};
 
+
+	template <typename T, typename U>
+	concept variant_of = std::same_as<std::remove_cv_t<T>, std::remove_cv_t<U>> && requires(T v) {
+		static_cast<std::add_lvalue_reference_t<U>> (v);
+	};
+
 } // namespace flex

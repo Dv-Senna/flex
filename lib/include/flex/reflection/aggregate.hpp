@@ -9,6 +9,7 @@
 	#include <meta>
 #endif
 
+#include "flex/core/typeSets.hpp"
 #include "flex/core/typeTraits.hpp"
 #include "flex/macros/macros.hpp"
 
@@ -39,7 +40,7 @@ namespace flex::reflection::aggregate {
 	constexpr auto member_count_v = member_count<T>::value;
 
 
-	template <typename T>
+	template <flex::aggregate T>
 	constexpr auto getMemberTie(T& instance) noexcept {
 	#if defined(__cpp_structured_bindings) && __cpp_structured_bindings >= 202411L
 		auto& [...members] {instance};
@@ -102,12 +103,26 @@ namespace flex::reflection::aggregate {
 
 		template <std::size_t N, typename T>
 		consteval auto makePointer() noexcept {
+		#ifdef __clang__
+			#pragma clang diagnostic push
+			#pragma clang diagnostic ignored "-Wundefined-var-template"
+		#endif
 			auto& member {std::get<N> (getMemberTie(fakeObject<T>))};
+		#ifdef __clang__
+			#pragma clang diagnostic pop
+		#endif
 			return PointerMemberWrapper<std::remove_reference_t<decltype(member)>> (&member);
 		}
 	}
 
-	template <typename T>
+
+	template <flex::aggregate T>
+	using get_member_types_t = typename flex::remove_tuple_reference<
+		decltype(getMemberTie(internals::fakeObject<T>))
+	>::type;
+
+
+	template <flex::aggregate T>
 	consteval auto getMemberNames() noexcept {
 		constexpr auto memberCount {member_count<T>::value};
 		std::array<std::string_view, memberCount> results {};
@@ -124,14 +139,7 @@ namespace flex::reflection::aggregate {
 		auto loop {[&] <std::size_t I = 0> (auto& self) {
 			if constexpr (I + 1 < memberCount)
 				self.template operator() <I + 1> (self);
-		#ifdef __clang__
-			#pragma clang diagnostic push
-			#pragma clang diagnostic ignored "-Wundefined-var-template"
-		#endif
 			results[I] = internals::stripRawMemberName(internals::getRawMemberName<internals::makePointer<I, T> ()> ());
-		#ifdef __clang__
-			#pragma clang diagnostic pop
-		#endif
 		}};
 		loop(loop);
 	#endif

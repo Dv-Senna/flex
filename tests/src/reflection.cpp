@@ -21,7 +21,7 @@
 	}
 #endif
 
-#include <flex/reflection/aggregate.hpp>
+#include <flex/reflection/reflection.hpp>
 
 struct Address {
 	std::string street;
@@ -39,16 +39,25 @@ struct Person {
 };
 
 
+static_assert(flex::reflection::reflectable<Address>);
+static_assert(flex::reflection::reflectable<Person>);
+
+
 auto main() -> int {
 	static_assert(flex::reflection::aggregate::member_count_v<Address> == 5);
 	static_assert(flex::reflection::aggregate::member_count_v<Person> == 4);
 
+	static_assert(std::same_as<
+		flex::reflection::reflection_traits<Address>::member_types,
+		std::tuple<std::string, int, int, std::string, std::string>
+	>);
+
 	Address address {};
-	std::get<0> (flex::reflection::aggregate::getMemberTie(address)) = "Kramgasse";
-	std::get<1> (flex::reflection::aggregate::getMemberTie(address)) = 49;
-	std::get<2> (flex::reflection::aggregate::getMemberTie(address)) = 3000;
-	std::get<3> (flex::reflection::aggregate::getMemberTie(address)) = "Bern";
-	std::get<4> (flex::reflection::aggregate::getMemberTie(address)) = "Switzerland";
+	flex::reflection::reflection_traits<Address>::getMember<0u> (address) = "Kramgasse";
+	flex::reflection::reflection_traits<Address>::getMember<1u> (address) = 49;
+	flex::reflection::reflection_traits<Address>::getMember<2u> (address) = 3000;
+	flex::reflection::reflection_traits<Address>::getMember<3u> (address) = "Bern";
+	flex::reflection::reflection_traits<Address>::getMember<4u> (address) = "Switzerland";
 
 	std::println("Address: {} {}, {} {}, {}",
 		address.street, address.number,
