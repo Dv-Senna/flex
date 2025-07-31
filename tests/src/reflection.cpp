@@ -71,18 +71,14 @@ auto main() -> int {
 		std::println("\t- '{}'", name);*/
 	std::println("Address:");
 	flex::reflection::foreachNamedMember(address, [](auto& member, std::string_view name) {
-			std::println("\t- {:7} = {}", name, member);
+		std::println("\t- {:7} = {}", name, member);
 	});
 
 	static_assert(!noexcept(
-		flex::reflection::foreachNamedMember(address, [](auto& member, std::string_view name) {
-				std::println("\t- {:7} = {}", name, member);
-		})
+		flex::reflection::foreachNamedMember(address, [](auto& member, std::string_view name) {})
 	));
 	static_assert(noexcept(
-		flex::reflection::foreachNamedMember(address, [](auto& member, std::string_view name) noexcept {
-				std::println("\t- {:7} = {}", name, member);
-		})
+		flex::reflection::foreachNamedMember(address, [](auto& member, std::string_view name) noexcept {})
 	));
 
 	return EXIT_SUCCESS;
