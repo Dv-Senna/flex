@@ -1,3 +1,4 @@
+#include "flex/core/stringifier.hpp"
 #include <format>
 #include <iostream>
 #include <string>
@@ -41,6 +42,12 @@ static_assert(noexcept(
 	flex::reflection::foreachNamedMember(std::declval<Address&> (), [](auto&, std::string_view) noexcept {})
 ));
 
+static_assert(flex::stringifyable<Address>);
+static_assert(flex::stringifyable<Person>);
+static_assert(flex::nonfailable_stringifyable<Address>);
+static_assert(flex::nonfailable_stringifyable<Person>);
+static_assert(flex::stringifyable_with<Address, flex::reflection::StringifyStyle>);
+static_assert(flex::stringifyable_with<Person, flex::reflection::StringifyStyle>);
 
 
 TEST_CASE("reflection_traits", "[reflection]") {
@@ -51,6 +58,12 @@ TEST_CASE("reflection_traits", "[reflection]") {
 	flex::reflection::reflection_traits<Address>::getMember<2u> (address) = 3000;
 	flex::reflection::reflection_traits<Address>::getMember<3u> (address) = "Bern";
 	flex::reflection::reflection_traits<Address>::getMember<4u> (address) = "Switzerland";
+
+	Person person {};
+	flex::reflection::reflection_traits<Person>::getMember<0u> (person) = "Albert";
+	flex::reflection::reflection_traits<Person>::getMember<1u> (person) = "Einstein";
+	flex::reflection::reflection_traits<Person>::getMember<2u> (person) = 26;
+	flex::reflection::reflection_traits<Person>::getMember<3u> (person) = address;
 
 	REQUIRE(flex::reflection::reflection_traits<Address>::name == "Address");
 	std::size_t i {};
@@ -65,4 +78,30 @@ TEST_CASE("reflection_traits", "[reflection]") {
 
 		REQUIRE(std::format("{}={}", name, member) == expected[i++]);
 	});
+
+	REQUIRE(flex::toString(address) == "{street=Kramgasse,number=49,code=3000,town=Bern,country=Switzerland}");
+	REQUIRE(flex::toString(person) == "{firstname=Albert,lastname=Einstein,age=26,address="
+		"{street=Kramgasse,number=49,code=3000,town=Bern,country=Switzerland}}"
+	);
+	REQUIRE(flex::toString(address, flex::reflection::StringifyStyle{.prettify = true}) == "{\n"
+		"    street=Kramgasse,\n"
+		"    number=49,\n"
+		"    code=3000,\n"
+		"    town=Bern,\n"
+		"    country=Switzerland\n"
+		"}"
+	);
+	REQUIRE(flex::toString(person, flex::reflection::StringifyStyle{.prettify = true}) == "{\n"
+		"    firstname=Albert,\n"
+		"    lastname=Einstein,\n"
+		"    age=26,\n"
+		"    address={\n"
+		"        street=Kramgasse,\n"
+		"        number=49,\n"
+		"        code=3000,\n"
+		"        town=Bern,\n"
+		"        country=Switzerland\n"
+		"    }\n"
+		"}"
+	);
 }

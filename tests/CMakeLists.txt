@@ -23,7 +23,7 @@ function(add_test TARGET)
 	if (MSVC)
 		target_compile_options(${TARGET_NAME} PRIVATE /W4)
 	else()
-		target_compile_options(${TARGET_NAME} PRIVATE -Wall -Wextra -pedantic)
+		target_compile_options(${TARGET_NAME} PRIVATE -Wall -Wextra -pedantic -fconcepts-diagnostics-depth=2)
 	endif()
 endfunction()
 

@@ -39,7 +39,7 @@ namespace flex::pipes {
 				}
 				else if constexpr (flex::string<T>)
 					return std::string{stringifyable};
-				else if constexpr (std::same_as<T, char>) {
+				else if constexpr (std::same_as<T, bool>) {
 					if (!m_locale) {
 						if (stringifyable)
 							return "true";

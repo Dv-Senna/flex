@@ -1,8 +1,14 @@
 #pragma once
 
 #include <array>
+#include <concepts>
+#include <cstdint>
+#include <format>
+#include <ranges>
 #include <type_traits>
 
+#include "flex/core/config.hpp"
+#include "flex/core/stringifier.hpp"
 #include "flex/core/typeTraits.hpp"
 #include "flex/reflection/aggregate.hpp"
 
@@ -103,12 +109,14 @@ namespace flex::reflection {
 		struct is_foreach_named_member_func_noexcept<T, Func, N, N> : std::true_type {};
 	}
 
-	constexpr auto foreachMember(reflectable auto& instance, auto&& func) noexcept(
+	constexpr auto foreachMember(reflectable auto&& instance, auto&& func) noexcept(
 		internals::is_foreach_member_func_noexcept<std::remove_reference_t<decltype(instance)>, decltype(func)>::value
 	) -> void {
 		using T = std::remove_reference_t<decltype(instance)>;
 		using CountT = decltype(reflection_traits<T>::member_count);
-		auto loop {[&] <std::unsigned_integral auto I = CountT{0}> (auto& loop) {
+		auto loop {[&, instance = std::forward<decltype(instance)> (instance)]
+			<std::unsigned_integral auto I = CountT{0}> (auto& loop) mutable
+		{
 			func(reflection_traits<T>::template getMember<I> (instance));
 			if constexpr (I + 1 < reflection_traits<T>::member_count)
 				loop.template operator() <I + 1> (loop);
@@ -116,7 +124,7 @@ namespace flex::reflection {
 		loop(loop);
 	}
 
-	constexpr auto foreachNamedMember(reflectable auto& instance, auto&& func) noexcept(
+	constexpr auto foreachNamedMember(reflectable auto&& instance, auto&& func) noexcept(
 		internals::is_foreach_named_member_func_noexcept<
 			std::remove_reference_t<decltype(instance)>,
 			decltype(func)
@@ -124,7 +132,9 @@ namespace flex::reflection {
 	) -> void {
 		using T = std::remove_reference_t<decltype(instance)>;
 		using CountT = decltype(reflection_traits<T>::member_count);
-		auto loop {[&] <std::unsigned_integral auto I = CountT{0}> (auto& loop) {
+		auto loop {[&, instance = std::forward<decltype(instance)> (instance)]
+			<std::unsigned_integral auto I = CountT{0}> (auto& loop) mutable
+		{
 			func(
 				reflection_traits<T>::template getMember<I> (instance),
 				reflection_traits<T>::member_names[I]
@@ -134,4 +144,93 @@ namespace flex::reflection {
 		}};
 		loop(loop);
 	}
+
+
+	namespace internals {
+	#if __cplusplus >= FLEX_CPP_23
+		template <typename T>
+		concept formattable = std::formattable<T, char>;
+	#else
+		template <typename T>
+		concept formattable = requires(T& value, std::format_context ctx) {
+			std::formatter<std::remove_cvref_t<T>> ().format(value, ctx);
+		};
+	#endif
+	}
+
+	struct StringifyStyle {
+		bool prettify {false};
+		std::uint32_t indentSize {4};
+		std::uint32_t currentIndent {0};
+	};
+}
+
+
+namespace flex {
+	template <flex::reflection::reflectable T>
+	struct Stringifier<T> {
+		constexpr auto operator() (
+			flex::variant_of<T> auto&& value,
+			const flex::reflection::StringifyStyle& style = {}
+		) const noexcept -> std::string {
+			std::string_view prefix {};
+			std::string indent {};
+			std::string result {"{"};
+			if (style.prettify) {
+				prefix = "\n";
+				indent = std::string(style.currentIndent + style.indentSize, ' ');
+			}
+
+			auto processStringifyStyle = [](flex::reflection::StringifyStyle style) {
+				if (!style.prettify)
+					return style;
+				style.currentIndent += style.indentSize;
+				return style;
+			};
+
+			flex::reflection::foreachNamedMember(std::forward<decltype(value)> (value), [
+				&style, &prefix, &result, &processStringifyStyle, &indent
+			](
+				auto& member, std::string_view name
+			) {
+				using Member = std::remove_reference_t<decltype(member)>;
+
+				std::string memberValueAsString {};
+				if constexpr (flex::reflection::internals::formattable<Member>)
+					memberValueAsString = std::format("{}", member);
+				else if constexpr (flex::failable_stringifyable<Member>) {
+					using ErrorTraits = flex::error_type_traits<decltype(flex::toString(member))>;
+					using ValueType = typename ErrorTraits::ValueType;
+					if constexpr (flex::stringifyable_with<Member, flex::reflection::StringifyStyle>) {
+						memberValueAsString = ErrorTraits::getValueOr(
+							flex::toString(member, processStringifyStyle(style)), ValueType{"<to-string-error>"}
+						);
+					}
+					else {
+						memberValueAsString = ErrorTraits::getValueOr(
+							flex::toString(member), ValueType{"<to-string-error>"}
+						);
+					}
+				}
+				else {
+					if constexpr (flex::stringifyable_with<Member, flex::reflection::StringifyStyle>)
+						memberValueAsString = flex::toString(member, processStringifyStyle(style));
+					else
+						memberValueAsString = flex::toString(member);
+				}
+
+				result += std::format("{}{}{}={}", prefix, indent, name, memberValueAsString);
+				if (style.prettify)
+					prefix = ",\n";
+				else
+					prefix = ",";
+			});
+			if (style.prettify) {
+				result.push_back('\n');
+				result += std::string(style.currentIndent, ' ');
+			}
+			result.push_back('}');
+			return result;
+		}
+	};
 }

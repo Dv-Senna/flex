@@ -263,26 +263,7 @@ namespace flex{
 		|| (std::is_pointer_v<T> && std::is_same_v<std::remove_const_t<std::remove_pointer_t<T>>, char>);
 
 	template <typename T>
-	concept string = is_string_v<T>;
-
-
-	template <typename T, typename = void>
-	struct is_stringifyable : std::false_type {};
-
-	template <arithmetic T>
-	struct is_stringifyable<T> : std::true_type {};
-
-	template <string T>
-	struct is_stringifyable<T> : std::true_type {};
-
-	template <>
-	struct is_stringifyable<bool> : std::true_type {};
-
-	template <typename T>
-	constexpr auto is_stringifyable_v = is_stringifyable<T>::value;
-
-	template <typename T>
-	concept stringifyable = is_stringifyable<T>::value;
+	concept string = is_string_v<std::remove_cvref_t<T>>;
 
 
 
@@ -327,8 +308,8 @@ namespace flex{
 
 
 	template <typename T, typename U>
-	concept variant_of = std::same_as<std::remove_cv_t<T>, std::remove_cv_t<U>> && requires(T v) {
-		static_cast<std::add_lvalue_reference_t<U>> (v);
+	concept variant_of = std::same_as<std::remove_cvref_t<T>, std::remove_cvref_t<U>> && requires(T v) {
+		static_cast<std::add_lvalue_reference_t<std::remove_reference_t<U>>> (v);
 	};
 
 } // namespace flex

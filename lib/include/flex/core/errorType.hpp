@@ -1,7 +1,10 @@
 #pragma once
 
-#include <expected>
 #include <optional>
+
+#if defined(__cpp_lib_expected) && __cpp_lib_expected >= 202202L
+	#include <expected>
+#endif
 
 
 namespace flex {
@@ -74,6 +77,7 @@ namespace flex {
 	};
 
 
+#if defined(__cpp_lib_expected) && __cpp_lib_expected >= 202202L
 	template <typename T, typename E>
 	struct error_type_traits<std::expected<T, E>> {
 		static constexpr bool IS_ERROR_TYPE {true};
@@ -107,6 +111,7 @@ namespace flex {
 		[[nodiscard]]
 		static constexpr auto getErrorOr(const Type &instance, G &&defaultValue) noexcept -> ErrorType {return instance.error_or(std::forward<G> (defaultValue));}
 	};
+#endif
 
 
 	template <__internals::autogen_error_type T>
