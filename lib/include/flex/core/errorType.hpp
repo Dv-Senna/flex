@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <type_traits>
 
 #if defined(__cpp_lib_expected) && __cpp_lib_expected >= 202202L
 	#include <expected>

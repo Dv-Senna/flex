@@ -1,12 +1,11 @@
-#include "flex/core/stringifier.hpp"
 #include <format>
-#include <iostream>
 #include <string>
 #include <string_view>
 
 #include <catch2/catch_test_macros.hpp>
 
 #include <flex/reflection/reflection.hpp>
+#include <flex/reflection/userProvided.hpp>
 
 
 struct Address {
@@ -23,6 +22,37 @@ struct Person {
 	int age;
 	Address address;
 };
+
+class Office {
+	public:
+		Address mainAddress;
+		int value;
+
+		auto getMembers() const noexcept -> const std::vector<Person>& {return m_members;}
+		auto setMembers(const std::vector<Person>& members) noexcept -> void {m_members = members;}
+
+		struct FlexMetadata {
+			static constexpr auto rename = std::make_tuple(
+				std::tuple{"address", &Office::mainAddress}
+			);
+			static constexpr auto remove = std::make_tuple(
+				&Office::value
+			);
+			static constexpr auto new_member = std::make_tuple(
+				std::tuple{"members", &Office::setMembers, &Office::getMembers},
+				std::tuple{"write-only-members", &Office::getMembers},
+				std::tuple{"read-only-members", &Office::setMembers}
+			);
+		};
+
+	private:
+		std::vector<Person> m_members;
+};
+
+static_assert(flex::reflection::has_user_provided_metadata<Office>);
+static_assert(flex::reflection::user_provided_metadata_has_rename<Office::FlexMetadata>);
+static_assert(flex::reflection::user_provided_metadata_has_remove<Office::FlexMetadata>);
+static_assert(flex::reflection::user_provided_metadata_has_new_member<Office::FlexMetadata>);
 
 
 static_assert(flex::reflection::reflectable<Address>);

@@ -101,7 +101,7 @@ namespace flex{
 	constexpr auto is_tuple_v = is_tuple<T>::value;
 
 	template <typename T>
-	concept tuple = is_tuple<T>::value;
+	concept tuple = is_tuple<std::remove_cvref_t<T>>::value;
 
 
 	template <typename T, typename = void>
@@ -182,7 +182,7 @@ namespace flex{
 	};
 
 	template <typename T>
-	using member_pointer_extractor_t = typename member_pointer_extractor<T>::type;
+	using member_pointer_extractor_t = typename member_pointer_extractor<typename std::remove_cvref<T>::type>::type;
 
 
 	template <typename T>
