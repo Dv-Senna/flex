@@ -1,4 +1,4 @@
-Include(FetchContent)
+include(FetchContent)
 
 FetchContent_Declare(
 	Catch2
@@ -11,3 +11,6 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(Catch2)
+if (DEFINED catch2_SOURCE_DIR)
+	list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
+endif()

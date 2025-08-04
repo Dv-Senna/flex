@@ -18,6 +18,14 @@ target_compile_definitions(flex-macros INTERFACE
 )
 
 
+# containers component
+add_library(flex-containers INTERFACE)
+add_library(flex::containers ALIAS flex-containers)
+target_link_libraries(flex-containers INTERFACE
+	flex-common-config
+)
+
+
 # reflection component
 add_library(flex-reflection INTERFACE)
 add_library(flex::reflection ALIAS flex-reflection)

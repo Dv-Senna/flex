@@ -23,36 +23,35 @@ struct Person {
 	Address address;
 };
 
-class Office {
-	public:
-		Address mainAddress;
-		int value;
+struct Office {
+	Address mainAddress;
+	int value;
+	std::vector<Person> m_members;
 
-		auto getMembers() const noexcept -> const std::vector<Person>& {return m_members;}
-		auto setMembers(const std::vector<Person>& members) noexcept -> void {m_members = members;}
+	auto getMembers() const noexcept -> const std::vector<Person>& {return m_members;}
+	auto setMembers(const std::vector<Person>& members) noexcept -> void {m_members = members;}
 
-		struct FlexMetadata {
-			static constexpr auto rename = std::make_tuple(
-				std::tuple{"address", &Office::mainAddress}
-			);
-			static constexpr auto remove = std::make_tuple(
-				&Office::value
-			);
-			static constexpr auto new_member = std::make_tuple(
-				std::tuple{"members", &Office::setMembers, &Office::getMembers},
-				std::tuple{"write-only-members", &Office::getMembers},
-				std::tuple{"read-only-members", &Office::setMembers}
-			);
-		};
-
-	private:
-		std::vector<Person> m_members;
+	struct FlexMetadata {
+		static constexpr auto rename = std::make_tuple(
+			std::tuple{"address", &Office::mainAddress}
+		);
+		static constexpr auto remove = std::make_tuple(
+			&Office::value,
+			&Office::m_members
+		);
+		static constexpr auto new_member = std::make_tuple(
+			std::tuple{"members", &Office::setMembers, &Office::getMembers},
+			std::tuple{"write-only-members", &Office::getMembers},
+			std::tuple{"read-only-members", &Office::setMembers}
+		);
+	};
 };
 
-static_assert(flex::reflection::has_user_provided_metadata<Office>);
-static_assert(flex::reflection::user_provided_metadata_has_rename<Office::FlexMetadata>);
-static_assert(flex::reflection::user_provided_metadata_has_remove<Office::FlexMetadata>);
-static_assert(flex::reflection::user_provided_metadata_has_new_member<Office::FlexMetadata>);
+static_assert(flex::reflection::userProvided::has_metadata<Office>);
+static_assert(flex::reflection::userProvided::metadata_has_rename<Office::FlexMetadata>);
+static_assert(flex::reflection::userProvided::metadata_has_remove<Office::FlexMetadata>);
+static_assert(flex::reflection::userProvided::metadata_has_new_member<Office::FlexMetadata>);
+//static_assert(flex::reflection::userProvided::getMemberNames<Office> () == "");
 
 
 static_assert(flex::reflection::reflectable<Address>);

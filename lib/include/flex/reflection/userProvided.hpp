@@ -1,14 +1,19 @@
 #pragma once
 
+#include <algorithm>
+#include <array>
+#include <string_view>
 #include <tuple>
 #include <type_traits>
+#include <vector>
 
 #include "flex/core/typeTraits.hpp"
+#include "flex/reflection/aggregate.hpp"
 
 
-namespace flex::reflection {
+namespace flex::reflection::userProvided {
 	template <typename T>
-	concept has_user_provided_metadata = requires {
+	concept has_metadata = requires {
 		typename T::FlexMetadata;
 	};
 
@@ -18,16 +23,16 @@ namespace flex::reflection {
 			std::size_t I = 0,
 			std::size_t N = std::tuple_size<T>::value
 		>
-		struct is_user_provided_metadata_rename_valid : std::bool_constant<
+		struct is_metadata_rename_valid : std::bool_constant<
 			flex::tuple<std::tuple_element_t<I, T>>
 			&& std::tuple_size<std::tuple_element_t<I, T>>::value == 2
 			&& flex::string<typename std::tuple_element<0, std::tuple_element_t<I, T>>::type>
 			&& std::is_member_object_pointer<typename std::tuple_element<1, std::tuple_element_t<I, T>>::type>::value
-			&& is_user_provided_metadata_rename_valid<T, I + 1, N>::value
+			&& is_metadata_rename_valid<T, I + 1, N>::value
 		> {};
 
 		template <typename T, std::size_t N>
-		struct is_user_provided_metadata_rename_valid<T, N, N> : std::true_type {};
+		struct is_metadata_rename_valid<T, N, N> : std::true_type {};
 
 
 		template <
@@ -35,13 +40,13 @@ namespace flex::reflection {
 			std::size_t I = 0,
 			std::size_t N = std::tuple_size<T>::value
 		>
-		struct is_user_provided_metadata_remove_valid : std::bool_constant<
+		struct is_metadata_remove_valid : std::bool_constant<
 			std::is_member_object_pointer<std::tuple_element_t<I, T>>::value
-			&& is_user_provided_metadata_remove_valid<T, I + 1, N>::value
+			&& is_metadata_remove_valid<T, I + 1, N>::value
 		> {};
 
 		template <typename T, std::size_t N>
-		struct is_user_provided_metadata_remove_valid<T, N, N> : std::true_type {};
+		struct is_metadata_remove_valid<T, N, N> : std::true_type {};
 
 
 		template <typename T>
@@ -90,10 +95,10 @@ namespace flex::reflection {
 
 
 		template <typename T, std::size_t N = std::tuple_size<T>::value>
-		struct is_user_provided_metadata_new_member_field_valid : std::false_type {};
+		struct is_metadata_new_member_field_valid : std::false_type {};
 
 		template <typename T>
-		struct is_user_provided_metadata_new_member_field_valid<T, 2> : std::bool_constant<
+		struct is_metadata_new_member_field_valid<T, 2> : std::bool_constant<
 			flex::tuple<T>
 			&& flex::string<typename std::tuple_element<0, T>::type>
 			&& (
@@ -103,7 +108,7 @@ namespace flex::reflection {
 		> {};
 
 		template <typename T>
-		struct is_user_provided_metadata_new_member_field_valid<T, 3> : std::bool_constant<
+		struct is_metadata_new_member_field_valid<T, 3> : std::bool_constant<
 			flex::tuple<T>
 			&& flex::string<typename std::tuple_element<0, T>::type>
 			&& is_getter_setter_pair<
@@ -118,34 +123,114 @@ namespace flex::reflection {
 			std::size_t I = 0,
 			std::size_t N = std::tuple_size<T>::value
 		>
-		struct is_user_provided_metadata_new_member_valid : std::bool_constant<
-			is_user_provided_metadata_new_member_field_valid<std::tuple_element_t<I, T>>::value
-			&& is_user_provided_metadata_new_member_valid<T, I + 1, N>::value
+		struct is_metadata_new_member_valid : std::bool_constant<
+			is_metadata_new_member_field_valid<std::tuple_element_t<I, T>>::value
+			&& is_metadata_new_member_valid<T, I + 1, N>::value
 		> {};
 
 		template <typename T, std::size_t N>
-		struct is_user_provided_metadata_new_member_valid<T, N, N> : std::true_type {};
+		struct is_metadata_new_member_valid<T, N, N> : std::true_type {};
 	}
 
 
 	template <typename T>
-	concept user_provided_metadata_has_rename = requires {
+	concept metadata_has_rename = requires {
 		{T::rename} -> flex::tuple;
 	}
 		&& std::tuple_size<decltype(T::rename)>::value > 0
-		&& internals::is_user_provided_metadata_rename_valid<decltype(T::rename)>::value;
+		&& internals::is_metadata_rename_valid<decltype(T::rename)>::value;
 
 	template <typename T>
-	concept user_provided_metadata_has_remove = requires {
+	concept metadata_has_remove = requires {
 		{T::remove} -> flex::tuple;
 	}
 		&& std::tuple_size<decltype(T::remove)>::value > 0
-		&& internals::is_user_provided_metadata_remove_valid<decltype(T::remove)>::value;
+		&& internals::is_metadata_remove_valid<decltype(T::remove)>::value;
 
 	template <typename T>
-	concept user_provided_metadata_has_new_member = requires {
+	concept metadata_has_new_member = requires {
 		{T::new_member} -> flex::tuple;
 	}
 		&& std::tuple_size<decltype(T::new_member)>::value > 0
-		&& internals::is_user_provided_metadata_new_member_valid<decltype(T::new_member)>::value;
+		&& internals::is_metadata_new_member_valid<decltype(T::new_member)>::value;
+
+
+	
+	namespace internals {
+		template <typename S, internals::getter auto getter = nullptr, internals::setter auto setter = nullptr>
+		class MemberWrapper {
+			using This = MemberWrapper<S, getter, setter>;
+			public:
+				MemberWrapper() = delete;
+				MemberWrapper(const This&) noexcept = delete;
+				auto operator=(const This&) noexcept -> This& = delete;
+				auto operator=(This&&) noexcept -> This& = delete;
+
+				constexpr MemberWrapper(S& instance) noexcept : m_instance {&instance} {}
+				constexpr MemberWrapper(This&&) noexcept = default;
+
+				constexpr auto operator=(auto&& value) const
+					noexcept(m_instance->*setter(std::declval<decltype(value)> ()))
+					requires (setter != nullptr)
+				{
+					m_instance->*setter(value);
+				}
+
+				constexpr operator typename std::invoke_result<
+					typename flex::member_pointer_extractor<decltype(getter)>::type
+				>::type () const noexcept(m_instance->*getter()) requires (getter != nullptr) {
+					return m_instance->*getter();
+				}
+
+
+			private:
+				S* m_instance;
+		};
+
+
+/*		template <typename T>
+		consteval auto getMemberNames() noexcept {
+			constexpr std::size_t namesCapacity {
+				flex::reflection::aggregate::member_count_v<T>
+				+ std::tuple_size_v<decltype(T::FlexMetadata::new_member)>
+			};
+			std::size_t namesCount {};
+			std::array<std::string_view, namesCapacity> names {};
+			if constexpr (flex::aggregate<T>) {
+				constexpr auto aggregateMemberNames {flex::reflection::aggregate::getMemberNames<T> ()};
+				names.insert(names.end(), aggregateMemberNames.begin(), aggregateMemberNames.end());
+			}
+
+			auto removeLoop {[&names] <std::size_t I = 0> (auto& removeLoop) noexcept {
+				constexpr std::tuple aggregateMembers {flex::reflection::aggregate::getMemberTie(
+					flex::reflection::aggregate::internals::fakeObject<T>
+				)};
+				constexpr auto& currentMember {std::get<I> (aggregateMembers)};
+				auto innerLoop {[&currentMember, &names] <std::size_t J = 0> (auto& innerLoop) noexcept {
+					constexpr auto& currentRemove {std::get<J> (T::FlexMetadata::remove)};
+					if constexpr (&currentMember
+						!= &flex::reflection::aggregate::internals::fakeObject<T>.*currentRemove
+					) {
+						if constexpr (J + 1 < std::tuple_size_v<decltype(T::FlexMetadata::remove)>)
+							innerLoop.template operator() <J + 1> (innerLoop);
+						return;
+					}
+					std::ranges::remove(names, flex::reflection::aggregate::getMemberNames<T> ()[I]);
+				}};
+				innerLoop(innerLoop);
+				if constexpr (I + 1 < std::tuple_size_v<decltype(aggregateMembers)>)
+					removeLoop.template operator() <I + 1> (removeLoop);
+			}};
+			return names;
+		}*/
+	}
+
+
+/*	template <has_metadata T>
+	consteval auto getMemberNames() noexcept {
+		constexpr auto names {internals::getMemberNames<T> ()};
+		std::array<std::string_view, names.size()> namesAsArray {};
+		std::ranges::copy(names, namesAsArray);
+		return namesAsArray;
+	}*/
 }

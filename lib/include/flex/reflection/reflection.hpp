@@ -11,6 +11,7 @@
 #include "flex/core/stringifier.hpp"
 #include "flex/core/typeTraits.hpp"
 #include "flex/reflection/aggregate.hpp"
+#include "flex/reflection/userProvided.hpp"
 
 
 namespace flex::reflection {
