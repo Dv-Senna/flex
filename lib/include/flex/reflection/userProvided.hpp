@@ -5,8 +5,8 @@
 #include <string_view>
 #include <tuple>
 #include <type_traits>
-#include <vector>
 
+#include "flex/containers/inplaceVector.hpp"
 #include "flex/core/typeTraits.hpp"
 #include "flex/reflection/aggregate.hpp"
 
@@ -188,17 +188,16 @@ namespace flex::reflection::userProvided {
 		};
 
 
-/*		template <typename T>
+		template <typename T>
 		consteval auto getMemberNames() noexcept {
 			constexpr std::size_t namesCapacity {
 				flex::reflection::aggregate::member_count_v<T>
 				+ std::tuple_size_v<decltype(T::FlexMetadata::new_member)>
 			};
-			std::size_t namesCount {};
-			std::array<std::string_view, namesCapacity> names {};
+			flex::containers::InplaceVector<std::string_view, namesCapacity, true> names {};
 			if constexpr (flex::aggregate<T>) {
 				constexpr auto aggregateMemberNames {flex::reflection::aggregate::getMemberNames<T> ()};
-				names.insert(names.end(), aggregateMemberNames.begin(), aggregateMemberNames.end());
+				names.appendRange(aggregateMemberNames);
 			}
 
 			auto removeLoop {[&names] <std::size_t I = 0> (auto& removeLoop) noexcept {
@@ -208,29 +207,30 @@ namespace flex::reflection::userProvided {
 				constexpr auto& currentMember {std::get<I> (aggregateMembers)};
 				auto innerLoop {[&currentMember, &names] <std::size_t J = 0> (auto& innerLoop) noexcept {
 					constexpr auto& currentRemove {std::get<J> (T::FlexMetadata::remove)};
-					if constexpr (&currentMember
-						!= &flex::reflection::aggregate::internals::fakeObject<T>.*currentRemove
-					) {
+					if constexpr (static_cast<const void*> (&currentMember) != static_cast<const void*> (
+						&(flex::reflection::aggregate::internals::fakeObject<T>.*currentRemove)
+					)) {
 						if constexpr (J + 1 < std::tuple_size_v<decltype(T::FlexMetadata::remove)>)
 							innerLoop.template operator() <J + 1> (innerLoop);
-						return;
 					}
-					std::ranges::remove(names, flex::reflection::aggregate::getMemberNames<T> ()[I]);
+					else
+						names.erase(std::ranges::remove(names, flex::reflection::aggregate::getMemberNames<T> ()[I]));
 				}};
 				innerLoop(innerLoop);
 				if constexpr (I + 1 < std::tuple_size_v<decltype(aggregateMembers)>)
 					removeLoop.template operator() <I + 1> (removeLoop);
 			}};
+			removeLoop(removeLoop);
 			return names;
-		}*/
+		}
 	}
 
 
-/*	template <has_metadata T>
+	template <has_metadata T>
 	consteval auto getMemberNames() noexcept {
 		constexpr auto names {internals::getMemberNames<T> ()};
 		std::array<std::string_view, names.size()> namesAsArray {};
-		std::ranges::copy(names, namesAsArray);
+		std::ranges::copy(names, namesAsArray.begin());
 		return namesAsArray;
-	}*/
+	}
 }

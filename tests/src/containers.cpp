@@ -21,6 +21,8 @@ TEST_CASE("inplace-vector", "[containers]") {
 	REQUIRE(!inplaceVector.tryPushBack(capacity));
 	REQUIRE(inplaceVector.size() == capacity);
 	REQUIRE(std::ranges::equal(inplaceVector, std::views::iota(std::size_t{0}, capacity)));
+	REQUIRE(inplaceVector.end() - inplaceVector.begin() == capacity);
+	REQUIRE(inplaceVector.cend() - inplaceVector.cbegin() == capacity);
 
 
 	SECTION("initialization") {

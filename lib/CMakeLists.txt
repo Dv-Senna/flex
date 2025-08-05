@@ -32,6 +32,7 @@ add_library(flex::reflection ALIAS flex-reflection)
 target_link_libraries(flex-reflection INTERFACE
 	flex-common-config
 	flex-macros
+	flex-containers
 )
 target_compile_definitions(flex-reflection INTERFACE
 	FLEX_REFLECTION_MAX_MEMBERS_COUNT=${FLEX_REFLECTION_MAX_MEMBERS_COUNT}

@@ -9,6 +9,8 @@ namespace flex::containers {
 	template <typename T, typename Container>
 	class ContiguousIterator {
 		friend Container;
+		template <typename, typename>
+		friend class ContiguousIterator;
 		public:
 			using value_type = std::remove_cv_t<T>;
 			using element_type = T;
@@ -73,6 +75,11 @@ namespace flex::containers {
 
 			friend auto operator+(difference_type off, ContiguousIterator it) noexcept -> ContiguousIterator {
 				return it += off;
+			}
+
+
+			constexpr operator ContiguousIterator<std::add_const_t<element_type>, Container> () const noexcept {
+				return ContiguousIterator<std::add_const_t<element_type>, Container> {m_data};
 			}
 
 
