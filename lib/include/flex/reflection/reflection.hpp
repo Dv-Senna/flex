@@ -21,7 +21,12 @@ namespace flex::reflection {
 	template <typename T>
 	struct reflection_traits;
 
-	template <flex::aggregate T>
+	namespace internals {
+		template <typename T>
+		concept pure_aggregate = flex::aggregate<T> && !flex::reflection::userProvided::has_metadata<T>;
+	}
+
+	template <internals::pure_aggregate T>
 	struct reflection_traits<T> {
 		using type = T;
 		static constexpr auto name {flex::reflection::aggregate::getTypeName<T> ()};
@@ -34,6 +39,14 @@ namespace flex::reflection {
 		static constexpr auto getMember(flex::variant_of<T> auto& instance) noexcept -> auto& {
 			return std::get<I> (flex::reflection::aggregate::getMemberTie(instance));
 		}
+	};
+
+	template <flex::reflection::userProvided::has_metadata T>
+	struct reflection_traits<T> {
+		using type = T;
+//		static constexpr auto name {};
+		static constexpr auto member_names {flex::reflection::userProvided::getMemberNames<T> ()};
+		static constexpr auto member_count {member_names.size()};
 	};
 
 

@@ -53,10 +53,11 @@ static_assert(flex::reflection::userProvided::has_metadata<Office>);
 static_assert(flex::reflection::userProvided::metadata_has_rename<Office::FlexMetadata>);
 static_assert(flex::reflection::userProvided::metadata_has_remove<Office::FlexMetadata>);
 static_assert(flex::reflection::userProvided::metadata_has_new_member<Office::FlexMetadata>);
-/*static_assert(std::ranges::equal(
-	flex::reflection::userProvided::getMemberNames<Office> (),
-	std::vector<std::string_view> {"mainAddress"}
-));*/
+static_assert(flex::reflection::reflection_traits<Office>::member_count == 4);
+static_assert(std::ranges::equal(
+	flex::reflection::reflection_traits<Office>::member_names,
+	std::vector<std::string_view> {"address", "members", "write-only-members", "read-only-members"}
+));
 
 
 static_assert(flex::reflection::reflectable<Address>);
@@ -85,10 +86,6 @@ static_assert(flex::stringifyable_with<Person, flex::reflection::StringifyStyle>
 
 
 TEST_CASE("reflection_traits", "[reflection]") {
-	std::cout << "Office members:" << std::endl;
-	for (const auto& members : flex::reflection::userProvided::getMemberNames<Office> ())
-		std::cout << "\t" << std::quoted(members) << std::endl;
-
 	using namespace std::string_view_literals;
 	Address address {};
 	flex::reflection::reflection_traits<Address>::getMember<0u> (address) = "Kramgasse";

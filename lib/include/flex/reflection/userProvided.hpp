@@ -182,7 +182,6 @@ namespace flex::reflection::userProvided {
 					return m_instance->*getter();
 				}
 
-
 			private:
 				S* m_instance;
 		};
@@ -221,6 +220,40 @@ namespace flex::reflection::userProvided {
 					removeLoop.template operator() <I + 1> (removeLoop);
 			}};
 			removeLoop(removeLoop);
+
+			auto renameLoop {[&names] <std::size_t I = 0> (auto& renameLoop) noexcept {
+				constexpr std::tuple aggregateMembers {flex::reflection::aggregate::getMemberTie(
+					flex::reflection::aggregate::internals::fakeObject<T>
+				)};
+				constexpr auto& currentMember {std::get<I> (aggregateMembers)};
+				auto innerLoop {[&] <std::size_t J = 0> (auto& innerLoop) noexcept {
+					constexpr auto& currentRenameName {std::get<0> (std::get<J> (T::FlexMetadata::rename))};
+					constexpr auto& currentRenameMember {std::get<1> (std::get<J> (T::FlexMetadata::rename))};
+					if constexpr (static_cast<const void*> (&currentMember) != static_cast<const void*> (
+						&(flex::reflection::aggregate::internals::fakeObject<T>.*currentRenameMember)
+					)) {
+						if constexpr (J + 1 < std::tuple_size_v<decltype(T::FlexMetadata::rename)>)
+							innerLoop.template operator() <J + 1> (innerLoop);
+					}
+					else {
+						auto it {std::ranges::find(names, flex::reflection::aggregate::getMemberNames<T> ()[I])};
+						assert(it != names.end() && "Can't rename member that was removed");
+						*it = currentRenameName;
+					}
+				}};
+				innerLoop(innerLoop);
+				if constexpr (I + 1 < std::tuple_size_v<decltype(aggregateMembers)>)
+					renameLoop.template operator() <I + 1> (renameLoop);
+			}};
+			renameLoop(renameLoop);
+
+			auto newMemberLoop {[&names] <std::size_t I = 0> (auto& newMemberLoop) noexcept {
+				constexpr auto currentNewMember {std::get<I> (T::FlexMetadata::new_member)};
+				names.pushBack(std::get<0> (currentNewMember));
+				if constexpr (I + 1 < std::tuple_size_v<decltype(T::FlexMetadata::new_member)>)
+					newMemberLoop.template operator() <I + 1> (newMemberLoop);
+			}};
+			newMemberLoop(newMemberLoop);
 			return names;
 		}
 	}
@@ -232,5 +265,11 @@ namespace flex::reflection::userProvided {
 		std::array<std::string_view, names.size()> namesAsArray {};
 		std::ranges::copy(names, namesAsArray.begin());
 		return namesAsArray;
+	}
+
+
+	template <has_metadata T, std::size_t I>
+	constexpr auto getMember(flex::variant_of<T> auto& instance) noexcept {
+		
 	}
 }
