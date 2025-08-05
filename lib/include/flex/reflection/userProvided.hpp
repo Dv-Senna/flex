@@ -205,7 +205,7 @@ namespace flex::reflection::userProvided {
 					flex::reflection::aggregate::internals::fakeObject<T>
 				)};
 				constexpr auto& currentMember {std::get<I> (aggregateMembers)};
-				auto innerLoop {[&currentMember, &names] <std::size_t J = 0> (auto& innerLoop) noexcept {
+				auto innerLoop {[&] <std::size_t J = 0> (auto& innerLoop) noexcept {
 					constexpr auto& currentRemove {std::get<J> (T::FlexMetadata::remove)};
 					if constexpr (static_cast<const void*> (&currentMember) != static_cast<const void*> (
 						&(flex::reflection::aggregate::internals::fakeObject<T>.*currentRemove)

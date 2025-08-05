@@ -1,4 +1,5 @@
 #include <format>
+#include <iomanip>
 #include <iostream>
 #include <string>
 #include <string_view>
@@ -54,7 +55,7 @@ static_assert(flex::reflection::userProvided::metadata_has_remove<Office::FlexMe
 static_assert(flex::reflection::userProvided::metadata_has_new_member<Office::FlexMetadata>);
 /*static_assert(std::ranges::equal(
 	flex::reflection::userProvided::getMemberNames<Office> (),
-	std::vector<std::string_view> {"mainAddress", "value", "m_members"}
+	std::vector<std::string_view> {"mainAddress"}
 ));*/
 
 
@@ -86,7 +87,7 @@ static_assert(flex::stringifyable_with<Person, flex::reflection::StringifyStyle>
 TEST_CASE("reflection_traits", "[reflection]") {
 	std::cout << "Office members:" << std::endl;
 	for (const auto& members : flex::reflection::userProvided::getMemberNames<Office> ())
-		std::cout << "\t" << members << std::endl;
+		std::cout << "\t" << std::quoted(members) << std::endl;
 
 	using namespace std::string_view_literals;
 	Address address {};

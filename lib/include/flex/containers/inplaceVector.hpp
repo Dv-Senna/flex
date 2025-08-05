@@ -13,6 +13,7 @@
 #include <tuple>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include "flex/containers/contiguousIterator.hpp"
 
@@ -243,8 +244,56 @@ namespace flex::containers {
 			}
 
 
-			constexpr auto erase(const_iterator start, const_iterator end) noexcept -> iterator {
-				
+			constexpr auto erase(const_iterator start, const_iterator end)
+				noexcept (std::is_nothrow_move_assignable_v<T> || std::is_nothrow_copy_assignable_v<T>)
+				-> iterator
+				requires (std::is_move_assignable_v<T> || std::is_copy_assignable_v<T>)
+			{
+				assert(this->isIteratorValid(start));
+				assert(this->isIteratorValid(end));
+				const auto tailSize {static_cast<size_type> (this->cend() - end)};
+				const auto startOffset {static_cast<size_type> (start - this->cbegin())};
+				const auto tailOffset {static_cast<size_type> (end - this->cbegin())};
+				const auto removeCount {static_cast<size_type> (end - start)};
+
+				const iterator result {this->begin() + static_cast<difference_type> (startOffset)};
+				if (removeCount == 0)
+					return result;
+				if (tailSize != 0) {
+					for (const auto i : std::views::iota(size_type{0}, tailSize)) {
+						if constexpr (std::is_move_assignable_v<T>)
+							this->at(startOffset + i) = std::move(this->at(tailOffset + i));
+						else
+							this->at(startOffset + i) = this->at(tailOffset + i);
+						this->at(tailOffset + i).~T();
+						if constexpr (useTrivialImplementation)
+							this->constructAt(tailOffset + i);
+					}
+				}
+				if (tailSize >= removeCount) {
+					m_size -= removeCount;
+					return result;
+				}
+
+				for (const auto i : std::views::iota(startOffset + tailSize, tailOffset)) {
+					this->at(i).~T();
+					if constexpr (useTrivialImplementation)
+						this->constructAt(i);
+				}
+				m_size -= removeCount;
+				return result;
+			}
+
+
+			constexpr auto erase(std::ranges::input_range auto&& range)
+				noexcept (std::is_nothrow_move_assignable_v<T> || std::is_nothrow_copy_assignable_v<T>)
+				-> iterator
+				requires (std::is_move_assignable_v<T> || std::is_copy_assignable_v<T>)
+			{
+				return this->erase(
+					std::ranges::begin(std::forward<decltype(range)> (range)),
+					std::ranges::end(std::forward<decltype(range)> (range))
+				);
 			}
 
 
