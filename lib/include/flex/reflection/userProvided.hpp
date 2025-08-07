@@ -416,8 +416,27 @@ namespace flex::reflection::userProvided {
 		typename internals::get_new_member_types<T>::type
 	>::type;
 
-/*	template <has_valid_metadata T, std::size_t I>
+	template <has_valid_metadata T, std::size_t I>
 	constexpr auto getMember(flex::variant_of<T> auto& instance) noexcept {
-		
-	}*/
+		if constexpr (flex::aggregate<T>
+			&& I < std::tuple_size<typename internals::get_processed_aggregate_member_types<T>::type>::value
+		) {
+			auto loop {[&] <std::size_t J = 0, std::size_t K = 0> (auto& loop) {
+				constexpr std::size_t offset {internals::removeMember<T, K> () ? 0 : 1};
+				if constexpr (J == I)
+					return std::reference_wrapper(std::get<K> (flex::reflection::aggregate::getMemberTie(instance)));
+				else {
+					if constexpr (K + 1 < flex::reflection::aggregate::member_count<T>::value)
+						return loop.template operator() <J + offset, K + 1> (loop);
+					else {
+						assert(!"Member must be from aggregate part but was not found");
+						return std::reference_wrapper(
+							std::get<K> (flex::reflection::aggregate::getMemberTie(instance))
+						);
+					}
+				}
+			}};
+			return loop(loop);
+		}
+	}
 }

@@ -111,6 +111,11 @@ TEST_CASE("reflection_traits", "[reflection]") {
 	flex::reflection::reflection_traits<Person>::getMember<2u> (person) = 26;
 	flex::reflection::reflection_traits<Person>::getMember<3u> (person) = address;
 
+	Office office {};
+	flex::reflection::reflection_traits<Office>::getMember<0u> (office).get() = address;
+	std::cout << std::quoted(office.mainAddress.town) << std::endl;
+
+
 	REQUIRE(flex::reflection::reflection_traits<Address>::name == "Address");
 	std::size_t i {};
 	flex::reflection::foreachNamedMember(address, [&i](auto& member, std::string_view name) {

@@ -47,6 +47,12 @@ namespace flex::reflection {
 //		static constexpr auto name {};
 		static constexpr auto member_names {flex::reflection::userProvided::getMemberNames<T> ()};
 		static constexpr auto member_count {member_names.size()};
+
+		template <std::unsigned_integral auto I>
+		requires (I < member_count)
+		static constexpr auto getMember(flex::variant_of<T> auto& instance) noexcept -> auto {
+			return flex::reflection::userProvided::getMember<T, I> (instance);
+		}
 	};
 
 
