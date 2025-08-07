@@ -41,7 +41,7 @@ namespace flex::reflection {
 		}
 	};
 
-	template <flex::reflection::userProvided::has_metadata T>
+	template <flex::reflection::userProvided::has_valid_metadata T>
 	struct reflection_traits<T> {
 		using type = T;
 //		static constexpr auto name {};

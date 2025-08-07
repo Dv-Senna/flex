@@ -148,7 +148,8 @@ namespace flex{
 	};
 
 	template <typename T>
-	using remove_member_function_pointer_const_noexcept_t = typename remove_member_function_pointer_const_noexcept<T>::type;
+	using remove_member_function_pointer_const_noexcept_t =
+		typename remove_member_function_pointer_const_noexcept<T>::type;
 
 
 	template <typename T>
@@ -253,6 +254,91 @@ namespace flex{
 
 
 	template <typename T>
+	requires (std::is_function<T>::value)
+	struct clean_function_signature;
+
+	template <typename Ret, typename ...Args>
+	struct clean_function_signature<Ret(Args...)> : flex::type_constant<Ret(Args...)> {};
+	template <typename Ret, typename ...Args>
+	struct clean_function_signature<Ret(Args...) const> : flex::type_constant<Ret(Args...)> {};
+	template <typename Ret, typename ...Args>
+	struct clean_function_signature<Ret(Args...) volatile> : flex::type_constant<Ret(Args...)> {};
+	template <typename Ret, typename ...Args>
+	struct clean_function_signature<Ret(Args...) const volatile> : flex::type_constant<Ret(Args...)> {};
+
+	template <typename Ret, typename ...Args>
+	struct clean_function_signature<Ret(Args...) &> : flex::type_constant<Ret(Args...)> {};
+	template <typename Ret, typename ...Args>
+	struct clean_function_signature<Ret(Args...) const&> : flex::type_constant<Ret(Args...)> {};
+	template <typename Ret, typename ...Args>
+	struct clean_function_signature<Ret(Args...) volatile&> : flex::type_constant<Ret(Args...)> {};
+	template <typename Ret, typename ...Args>
+	struct clean_function_signature<Ret(Args...) const volatile&> : flex::type_constant<Ret(Args...)> {};
+	template <typename Ret, typename ...Args>
+	struct clean_function_signature<Ret(Args...) &&> : flex::type_constant<Ret(Args...)> {};
+	template <typename Ret, typename ...Args>
+	struct clean_function_signature<Ret(Args...) const&&> : flex::type_constant<Ret(Args...)> {};
+	template <typename Ret, typename ...Args>
+	struct clean_function_signature<Ret(Args...) volatile&&> : flex::type_constant<Ret(Args...)> {};
+	template <typename Ret, typename ...Args>
+	struct clean_function_signature<Ret(Args...) const volatile&&> : flex::type_constant<Ret(Args...)> {};
+
+	template <typename Ret, typename ...Args>
+	struct clean_function_signature<Ret(Args...) noexcept> : flex::type_constant<Ret(Args...)> {};
+	template <typename Ret, typename ...Args>
+	struct clean_function_signature<Ret(Args...) const noexcept> : flex::type_constant<Ret(Args...)> {};
+	template <typename Ret, typename ...Args>
+	struct clean_function_signature<Ret(Args...) volatile noexcept> : flex::type_constant<Ret(Args...)> {};
+	template <typename Ret, typename ...Args>
+	struct clean_function_signature<Ret(Args...) const volatile noexcept> : flex::type_constant<Ret(Args...)> {};
+	template <typename Ret, typename ...Args>
+	struct clean_function_signature<Ret(Args...) & noexcept> : flex::type_constant<Ret(Args...)> {};
+	template <typename Ret, typename ...Args>
+	struct clean_function_signature<Ret(Args...) const& noexcept> : flex::type_constant<Ret(Args...)> {};
+	template <typename Ret, typename ...Args>
+	struct clean_function_signature<Ret(Args...) volatile& noexcept> : flex::type_constant<Ret(Args...)> {};
+	template <typename Ret, typename ...Args>
+	struct clean_function_signature<Ret(Args...) const volatile& noexcept> : flex::type_constant<Ret(Args...)> {};
+	template <typename Ret, typename ...Args>
+	struct clean_function_signature<Ret(Args...) && noexcept> : flex::type_constant<Ret(Args...)> {};
+	template <typename Ret, typename ...Args>
+	struct clean_function_signature<Ret(Args...) const&& noexcept> : flex::type_constant<Ret(Args...)> {};
+	template <typename Ret, typename ...Args>
+	struct clean_function_signature<Ret(Args...) volatile&& noexcept> : flex::type_constant<Ret(Args...)> {};
+	template <typename Ret, typename ...Args>
+	struct clean_function_signature<Ret(Args...) const volatile&& noexcept> : flex::type_constant<Ret(Args...)> {};
+
+	template <typename T>
+	using clean_function_signature_t = typename clean_function_signature<
+		typename std::remove_pointer<typename std::remove_cvref<T>::type>::type
+	>::type;
+
+
+	template <typename T, std::size_t I>
+	requires std::is_function<T>::value
+	struct extract_signature_argument;
+
+	template <typename Ret, std::size_t I, typename ...Args>
+	struct extract_signature_argument<Ret(Args...), I> : flex::type_constant<
+		typename std::tuple_element<I, std::tuple<Args...>>::type
+	> {};
+
+	template <typename T, std::size_t I>
+	using extract_signature_argument_t = typename extract_signature_argument<clean_function_signature_t<T>, I>::type;
+
+
+	template <typename T>
+	requires std::is_function<T>::value
+	struct extract_signature_return;
+
+	template <typename Ret, typename ...Args>
+	struct extract_signature_return<Ret(Args...)> : flex::type_constant<Ret> {};
+
+	template <typename T>
+	using extract_signature_return_t = typename extract_signature_return<clean_function_signature_t<T>>::type;
+
+
+	template <typename T>
 	concept arithmetic = std::integral<T> || std::floating_point<T>;
 
 
@@ -310,6 +396,13 @@ namespace flex{
 	template <typename T, typename U>
 	concept variant_of = std::same_as<std::remove_cvref_t<T>, std::remove_cvref_t<U>> && requires(T v) {
 		static_cast<std::add_lvalue_reference_t<std::remove_reference_t<U>>> (v);
+	};
+
+
+	template <typename T>
+	requires std::same_as<T, std::remove_const_t<T>>
+	struct WriteOnly {
+		using type = T;
 	};
 
 } // namespace flex

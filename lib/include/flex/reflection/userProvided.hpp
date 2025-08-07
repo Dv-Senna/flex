@@ -7,6 +7,7 @@
 #include <type_traits>
 
 #include "flex/containers/inplaceVector.hpp"
+#include "flex/core/typeSets.hpp"
 #include "flex/core/typeTraits.hpp"
 #include "flex/reflection/aggregate.hpp"
 
@@ -86,7 +87,7 @@ namespace flex::reflection::userProvided {
 		struct is_getter_setter_pair<Getter, Setter> : std::bool_constant<
 			std::invocable<
 				flex::member_pointer_extractor_t<Setter>,
-				typename std::invoke_result<flex::member_pointer_extractor_t<Getter>>::type
+				flex::extract_signature_return_t<flex::member_pointer_extractor_t<Getter>>
 			>
 		> {};
 
@@ -104,6 +105,7 @@ namespace flex::reflection::userProvided {
 			&& (
 				getter<typename std::tuple_element<1, T>::type>
 				|| setter<typename std::tuple_element<1, T>::type>
+				|| std::is_member_object_pointer_v<typename std::tuple_element<1, T>::type>
 			)
 		> {};
 
@@ -155,6 +157,14 @@ namespace flex::reflection::userProvided {
 		&& internals::is_metadata_new_member_valid<decltype(T::new_member)>::value;
 
 
+	template <typename T>
+	concept has_valid_metadata = has_metadata<T>
+		&& (
+			flex::aggregate<T>
+			|| (!metadata_has_remove<T> && !metadata_has_rename<T>)
+		);
+
+
 	
 	namespace internals {
 		template <typename S, internals::getter auto getter = nullptr, internals::setter auto setter = nullptr>
@@ -176,10 +186,33 @@ namespace flex::reflection::userProvided {
 					m_instance->*setter(value);
 				}
 
-				constexpr operator typename std::invoke_result<
-					typename flex::member_pointer_extractor<decltype(getter)>::type
-				>::type () const noexcept(m_instance->*getter()) requires (getter != nullptr) {
+				constexpr operator flex::extract_signature_return_t<
+					flex::member_pointer_extractor_t<decltype(getter)>
+				> () const
+					noexcept(m_instance->*getter())
+					requires (getter != nullptr)
+				{
 					return m_instance->*getter();
+				}
+
+				constexpr auto operator->() const
+					noexcept(m_instance->*getter())
+					-> typename std::add_pointer<flex::extract_signature_return_t<
+						flex::member_pointer_extractor_t<decltype(getter)>
+					>>::type
+					requires (getter != nullptr)
+				{
+					using Result = flex::extract_signature_return_t<
+						flex::member_pointer_extractor_t<decltype(getter)>
+					>;
+					struct PointerWrapper {
+						Result result;
+						constexpr auto operator->() noexcept -> Result& {return result;}
+					};
+					if constexpr (std::is_reference<Result>::value)
+						return &m_instance->*getter();
+					else
+						return PointerWrapper{m_instance->*getter()};
 				}
 
 			private:
@@ -187,35 +220,58 @@ namespace flex::reflection::userProvided {
 		};
 
 
-		template <typename T>
-		consteval auto getMemberNames() noexcept {
-			constexpr std::size_t namesCapacity {
-				flex::reflection::aggregate::member_count_v<T>
-				+ std::tuple_size_v<decltype(T::FlexMetadata::new_member)>
-			};
-			flex::containers::InplaceVector<std::string_view, namesCapacity, true> names {};
-			if constexpr (flex::aggregate<T>) {
-				constexpr auto aggregateMemberNames {flex::reflection::aggregate::getMemberNames<T> ()};
-				names.appendRange(aggregateMemberNames);
-			}
+		template <flex::aggregate T, std::size_t I>
+		consteval auto removeMember() noexcept -> bool {
+			constexpr auto& currentMember {std::get<I> (flex::reflection::aggregate::getMemberTie(
+				flex::reflection::aggregate::internals::fakeObject<T>
+			))};
+			auto loop {[&] <std::size_t J = 0> (auto& loop) {
+				constexpr auto& currentRemove {std::get<J> (T::FlexMetadata::remove)};
+				if constexpr (static_cast<const void*> (&currentMember) == static_cast<const void*> (
+					&(flex::reflection::aggregate::internals::fakeObject<T>.*currentRemove)
+				))
+					return true;
+				if constexpr (J + 1 < std::tuple_size_v<decltype(T::FlexMetadata::remove)>)
+					return loop.template operator() <J + 1> (loop);
+				else
+					return false;
+			}};
+			return loop(loop);
+		}
+
+
+		template <flex::aggregate T, std::size_t I>
+		consteval auto renameMember() noexcept -> std::optional<std::string_view> {
+			constexpr auto& currentMember {std::get<I> (flex::reflection::aggregate::getMemberTie(
+				flex::reflection::aggregate::internals::fakeObject<T>
+			))};
+			auto loop {[&] <std::size_t J = 0> (auto& loop) -> std::optional<std::string_view> {
+					constexpr std::string_view currentRenameName {std::get<0> (std::get<J> (T::FlexMetadata::rename))};
+					constexpr auto& currentRenameMember {std::get<1> (std::get<J> (T::FlexMetadata::rename))};
+				if constexpr (static_cast<const void*> (&currentMember) == static_cast<const void*> (
+					&(flex::reflection::aggregate::internals::fakeObject<T>.*currentRenameMember)
+				))
+					return currentRenameName;
+				if constexpr (J + 1 < std::tuple_size_v<decltype(T::FlexMetadata::rename)>)
+					return loop.template operator() <J + 1> (loop);
+				else
+					return std::nullopt;
+			}};
+			return loop(loop);
+		}
+
+
+		template <flex::aggregate T>
+		consteval auto processAggregateMemberNames(auto names) noexcept {
+			constexpr auto aggregateMemberNames {flex::reflection::aggregate::getMemberNames<T> ()};
+			names.appendRange(aggregateMemberNames);
 
 			auto removeLoop {[&names] <std::size_t I = 0> (auto& removeLoop) noexcept {
 				constexpr std::tuple aggregateMembers {flex::reflection::aggregate::getMemberTie(
 					flex::reflection::aggregate::internals::fakeObject<T>
 				)};
-				constexpr auto& currentMember {std::get<I> (aggregateMembers)};
-				auto innerLoop {[&] <std::size_t J = 0> (auto& innerLoop) noexcept {
-					constexpr auto& currentRemove {std::get<J> (T::FlexMetadata::remove)};
-					if constexpr (static_cast<const void*> (&currentMember) != static_cast<const void*> (
-						&(flex::reflection::aggregate::internals::fakeObject<T>.*currentRemove)
-					)) {
-						if constexpr (J + 1 < std::tuple_size_v<decltype(T::FlexMetadata::remove)>)
-							innerLoop.template operator() <J + 1> (innerLoop);
-					}
-					else
-						names.erase(std::ranges::remove(names, flex::reflection::aggregate::getMemberNames<T> ()[I]));
-				}};
-				innerLoop(innerLoop);
+				if constexpr (removeMember<T, I> ())
+					names.erase(std::ranges::remove(names, flex::reflection::aggregate::getMemberNames<T> ()[I]));
 				if constexpr (I + 1 < std::tuple_size_v<decltype(aggregateMembers)>)
 					removeLoop.template operator() <I + 1> (removeLoop);
 			}};
@@ -225,27 +281,29 @@ namespace flex::reflection::userProvided {
 				constexpr std::tuple aggregateMembers {flex::reflection::aggregate::getMemberTie(
 					flex::reflection::aggregate::internals::fakeObject<T>
 				)};
-				constexpr auto& currentMember {std::get<I> (aggregateMembers)};
-				auto innerLoop {[&] <std::size_t J = 0> (auto& innerLoop) noexcept {
-					constexpr auto& currentRenameName {std::get<0> (std::get<J> (T::FlexMetadata::rename))};
-					constexpr auto& currentRenameMember {std::get<1> (std::get<J> (T::FlexMetadata::rename))};
-					if constexpr (static_cast<const void*> (&currentMember) != static_cast<const void*> (
-						&(flex::reflection::aggregate::internals::fakeObject<T>.*currentRenameMember)
-					)) {
-						if constexpr (J + 1 < std::tuple_size_v<decltype(T::FlexMetadata::rename)>)
-							innerLoop.template operator() <J + 1> (innerLoop);
-					}
-					else {
-						auto it {std::ranges::find(names, flex::reflection::aggregate::getMemberNames<T> ()[I])};
-						assert(it != names.end() && "Can't rename member that was removed");
-						*it = currentRenameName;
-					}
-				}};
-				innerLoop(innerLoop);
+				constexpr std::optional renameData {renameMember<T, I> ()};
+				if constexpr (renameData) {
+					auto it {std::ranges::find(names, flex::reflection::aggregate::getMemberNames<T> ()[I])};
+					assert(it != names.end() && "Can't rename member that was removed");
+					*it = *renameData;
+				}
 				if constexpr (I + 1 < std::tuple_size_v<decltype(aggregateMembers)>)
 					renameLoop.template operator() <I + 1> (renameLoop);
 			}};
 			renameLoop(renameLoop);
+			return names;
+		};
+
+
+		template <has_valid_metadata T>
+		consteval auto getMemberNames() noexcept {
+			constexpr std::size_t namesCapacity {
+				flex::reflection::aggregate::member_count_v<T>
+				+ std::tuple_size_v<decltype(T::FlexMetadata::new_member)>
+			};
+			flex::containers::InplaceVector<std::string_view, namesCapacity, true> names {};
+			if constexpr (flex::aggregate<T>)
+				names = processAggregateMemberNames<T> (names);
 
 			auto newMemberLoop {[&names] <std::size_t I = 0> (auto& newMemberLoop) noexcept {
 				constexpr auto currentNewMember {std::get<I> (T::FlexMetadata::new_member)};
@@ -259,7 +317,7 @@ namespace flex::reflection::userProvided {
 	}
 
 
-	template <has_metadata T>
+	template <has_valid_metadata T>
 	consteval auto getMemberNames() noexcept {
 		constexpr auto names {internals::getMemberNames<T> ()};
 		std::array<std::string_view, names.size()> namesAsArray {};
@@ -268,8 +326,98 @@ namespace flex::reflection::userProvided {
 	}
 
 
-	template <has_metadata T, std::size_t I>
+
+	namespace internals {
+		template <
+			has_valid_metadata T,
+			std::size_t I = 0,
+			std::size_t N = flex::reflection::aggregate::member_count<T>::value
+		>
+		struct get_processed_aggregate_member_types : flex::type_constant<typename flex::merge_tuple<
+			typename std::conditional<internals::removeMember<T, I> (),
+				std::tuple<>,
+				std::tuple<typename std::tuple_element<I, flex::reflection::aggregate::get_member_types_t<T>>::type>
+			>::type,
+			typename get_processed_aggregate_member_types<T, I + 1, N>::type
+		>::type> {};
+
+		template <typename T, std::size_t N>
+		struct get_processed_aggregate_member_types<T, N, N> : flex::type_constant<std::tuple<>> {};
+
+
+		template <typename T, std::size_t N = std::tuple_size_v<T>, typename = void>
+		requires (internals::is_metadata_new_member_field_valid<T, N>::value)
+		struct get_new_member_type;
+
+		template <typename T>
+		struct get_new_member_type<T, 2,
+			std::enable_if_t<std::is_member_object_pointer_v<typename std::tuple_element<1, T>::type>, void>
+		> : flex::type_constant<
+			flex::member_pointer_extractor_t<typename std::tuple_element<1, T>::type>
+		> {};
+
+		template <typename T>
+		struct get_new_member_type<T, 2,
+			typename std::enable_if<getter<typename std::tuple_element<1, T>::type>, void>::type
+		> : flex::type_constant<
+			typename std::add_const<typename std::remove_reference<
+				flex::extract_signature_return_t<flex::member_pointer_extractor_t<
+					typename std::tuple_element<1, T>::type
+				>>
+			>::type>::type
+		> {};
+
+		template <typename T>
+		struct get_new_member_type<T, 2,
+			typename std::enable_if<setter<typename std::tuple_element<1, T>::type>, void>::type
+		> : flex::type_constant<
+			flex::WriteOnly<typename std::remove_cvref<
+				flex::extract_signature_argument_t<flex::member_pointer_extractor_t<
+					typename std::tuple_element<1, T>::type
+				>, 0>
+			>::type>
+		> {};
+
+		template <typename T>
+		struct get_new_member_type<T, 3> : flex::type_constant<
+			typename std::remove_cvref<
+				flex::extract_signature_return_t<flex::member_pointer_extractor_t<
+					typename std::conditional<getter<typename std::tuple_element<1, T>::type>,
+						typename std::tuple_element<1, T>::type,
+						typename std::tuple_element<2, T>::type
+					>::type
+				>>
+			>::type
+		> {};
+
+
+		template <
+			has_valid_metadata T,
+			std::size_t I = 0,
+			std::size_t N = std::tuple_size<decltype(T::FlexMetadata::new_member)>::value
+		>
+		struct get_new_member_types : flex::type_constant<
+			typename flex::merge_tuple<
+				std::tuple<typename get_new_member_type<
+					typename std::tuple_element<I, decltype(T::FlexMetadata::new_member)>::type
+				>::type>,
+				typename get_new_member_types<T, I + 1, N>::type
+			>::type
+		> {};
+
+		template <typename T, std::size_t N>
+		struct get_new_member_types<T, N, N> : flex::type_constant<std::tuple<>> {};
+	}
+
+
+	template <has_valid_metadata T>
+	using get_member_types_t = typename flex::merge_tuple<
+		typename internals::get_processed_aggregate_member_types<T>::type,
+		typename internals::get_new_member_types<T>::type
+	>::type;
+
+/*	template <has_valid_metadata T, std::size_t I>
 	constexpr auto getMember(flex::variant_of<T> auto& instance) noexcept {
 		
-	}
+	}*/
 }

@@ -43,8 +43,9 @@ struct Office {
 		);
 		static constexpr auto new_member = std::make_tuple(
 			std::tuple{"members", &Office::setMembers, &Office::getMembers},
-			std::tuple{"write-only-members", &Office::getMembers},
-			std::tuple{"read-only-members", &Office::setMembers}
+			std::tuple{"read-only-members", &Office::getMembers},
+			std::tuple{"write-only-members", &Office::setMembers},
+			std::tuple{"newValue", &Office::value}
 		);
 	};
 };
@@ -53,11 +54,21 @@ static_assert(flex::reflection::userProvided::has_metadata<Office>);
 static_assert(flex::reflection::userProvided::metadata_has_rename<Office::FlexMetadata>);
 static_assert(flex::reflection::userProvided::metadata_has_remove<Office::FlexMetadata>);
 static_assert(flex::reflection::userProvided::metadata_has_new_member<Office::FlexMetadata>);
-static_assert(flex::reflection::reflection_traits<Office>::member_count == 4);
+static_assert(flex::reflection::reflection_traits<Office>::member_count == 5);
 static_assert(std::ranges::equal(
 	flex::reflection::reflection_traits<Office>::member_names,
-	std::vector<std::string_view> {"address", "members", "write-only-members", "read-only-members"}
+	std::vector<std::string_view> {"address", "members", "read-only-members", "write-only-members", "newValue"}
 ));
+static_assert(std::same_as<
+	flex::reflection::userProvided::get_member_types_t<Office>,
+	std::tuple<
+		Address,
+		std::vector<Person>,
+		const std::vector<Person>,
+		flex::WriteOnly<std::vector<Person>>,
+		int
+	>
+>);
 
 
 static_assert(flex::reflection::reflectable<Address>);
