@@ -60,7 +60,7 @@ static_assert(std::ranges::equal(
 	std::vector<std::string_view> {"address", "members", "read-only-members", "write-only-members", "newValue"}
 ));
 static_assert(std::same_as<
-	flex::reflection::userProvided::get_member_types_t<Office>,
+	flex::reflection::reflection_traits<Office>::member_types,
 	std::tuple<
 		Address,
 		std::vector<Person>,
@@ -113,7 +113,17 @@ TEST_CASE("reflection_traits", "[reflection]") {
 
 	Office office {};
 	flex::reflection::reflection_traits<Office>::getMember<0u> (office).get() = address;
-	std::cout << std::quoted(office.mainAddress.town) << std::endl;
+	flex::reflection::reflection_traits<Office>::getMember<1u> (office) = std::vector{person, person};
+	flex::reflection::reflection_traits<Office>::getMember<3u> (office) = std::vector{person, person, person};
+	flex::reflection::reflection_traits<Office>::getMember<4u> (office).get() = 42;
+	std::cout << flex::toString(office.mainAddress) << std::endl;
+	std::cout << "getMember():" << std::endl;
+	for (const auto& member : office.getMembers())
+		std::cout << "\t" << flex::toString(member) << std::endl;
+	std::cout << "getMember<2u> ():" << std::endl;
+	for (const auto& member : *flex::reflection::reflection_traits<Office>::getMember<2u> (office))
+		std::cout << "\t" << flex::toString(member) << std::endl;
+	std::cout << office.value << std::endl;
 
 
 	REQUIRE(flex::reflection::reflection_traits<Address>::name == "Address");

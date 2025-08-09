@@ -393,10 +393,21 @@ namespace flex{
 	};
 
 
-	template <typename T, typename U>
-	concept variant_of = std::same_as<std::remove_cvref_t<T>, std::remove_cvref_t<U>> && requires(T v) {
-		static_cast<std::add_lvalue_reference_t<std::remove_reference_t<U>>> (v);
+	template <typename Forward, typename T>
+	concept forward_of = std::same_as<
+		typename std::remove_cvref<Forward>::type,
+		typename std::remove_cvref<T>::type
+	>;
+
+	template <typename Variant, typename Type>
+	concept variant_forward_of = forward_of<Variant, Type> && requires(Variant v) {
+		static_cast<std::add_lvalue_reference_t<std::remove_reference_t<Type>>> (v);
 	};
+
+	static_assert(variant_forward_of<int, int>);
+	static_assert(variant_forward_of<int, const int>);
+	static_assert(!variant_forward_of<const int, int>);
+	static_assert(variant_forward_of<const int, const int>);
 
 
 	template <typename T>

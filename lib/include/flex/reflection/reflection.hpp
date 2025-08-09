@@ -36,7 +36,7 @@ namespace flex::reflection {
 
 		template <std::unsigned_integral auto I>
 		requires (I < member_count)
-		static constexpr auto getMember(flex::variant_of<T> auto& instance) noexcept -> auto& {
+		static constexpr auto getMember(flex::forward_of<T> auto& instance) noexcept -> auto& {
 			return std::get<I> (flex::reflection::aggregate::getMemberTie(instance));
 		}
 	};
@@ -47,10 +47,11 @@ namespace flex::reflection {
 //		static constexpr auto name {};
 		static constexpr auto member_names {flex::reflection::userProvided::getMemberNames<T> ()};
 		static constexpr auto member_count {member_names.size()};
+		using member_types = flex::reflection::userProvided::get_member_types_t<T>;
 
 		template <std::unsigned_integral auto I>
 		requires (I < member_count)
-		static constexpr auto getMember(flex::variant_of<T> auto& instance) noexcept -> auto {
+		static constexpr auto getMember(flex::forward_of<T> auto& instance) noexcept -> auto {
 			return flex::reflection::userProvided::getMember<T, I> (instance);
 		}
 	};
@@ -190,7 +191,7 @@ namespace flex {
 	template <flex::reflection::reflectable T>
 	struct Stringifier<T> {
 		constexpr auto operator() (
-			flex::variant_of<T> auto&& value,
+			flex::forward_of<T> auto&& value,
 			const flex::reflection::StringifyStyle& style = {}
 		) const noexcept -> std::string {
 			std::string_view prefix {};
