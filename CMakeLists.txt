@@ -19,6 +19,6 @@ set(FLEX_MACROS_FOR_LOOP_MAX_DEPTH    16  CACHE STRING "")
 
 
 # subdirectories
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/scripts EXCLUDE_FROM_ALL)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/scripts)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/lib)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/tests EXCLUDE_FROM_ALL)
