@@ -64,7 +64,7 @@ namespace flex {
 
 
 	template <enumeration T>
-	constexpr auto toString(T value) noexcept -> std::optional<std::string_view> {
+	constexpr auto Stringifier<T>::operator()(T value) const noexcept -> std::optional<std::string_view> {
 		for (const auto &member : enum_members_v<T>) {
 			if (member.value == value)
 				return member.name;

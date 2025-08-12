@@ -8,6 +8,7 @@
 #include <type_traits>
 
 #include "flex/core/config.hpp"
+#include "flex/core/stringifier.hpp"
 
 #ifdef __cpp_impl_reflection
 	#include <meta>
@@ -166,7 +167,9 @@ namespace flex {
 
 
 	template <enumeration T>
-	constexpr auto toString(T value) noexcept -> std::optional<std::string_view>;
+	struct Stringifier<T> {
+		constexpr auto operator()(T value) const noexcept -> std::optional<std::string_view>;
+	};
 
 
 } // namespace flex
