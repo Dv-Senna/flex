@@ -125,6 +125,7 @@ TEST_CASE("reflection_traits", "[reflection]") {
 		std::cout << "\t" << flex::toString(member) << std::endl;
 	std::cout << office.value << std::endl;
 
+	std::cout << "0..16=" << flex::toString(std::views::iota(0, 16));
 
 	REQUIRE(flex::reflection::reflection_traits<Address>::name == "Address");
 	std::size_t i {};

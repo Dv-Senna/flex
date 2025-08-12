@@ -30,7 +30,7 @@ static_assert(flex::scoped_enumeration<SomeBitfield>);
 #endif
 
 
-TEST_CASE("macros", "[reflection]") {
+TEST_CASE("enums", "[reflection]") {
 	REQUIRE(flex::toString((SomeEnum)0).value_or("<invalid>") == "eA");
 	REQUIRE(flex::toString((SomeEnum)1).value_or("<invalid>") == "eB");
 	REQUIRE(flex::toString((SomeEnum)2).value_or("<invalid>") == "eC");

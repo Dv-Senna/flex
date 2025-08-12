@@ -1,6 +1,10 @@
 #pragma once
 
+#include <algorithm>
 #include <charconv>
+#include <functional>
+#include <ranges>
+#include <sstream>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -74,6 +78,37 @@ namespace flex {
 	struct Stringifier<T> {
 		constexpr auto operator()(flex::variant_forward_of<T> auto&& value) const noexcept {
 			return std::forward<decltype(value)> (value);
+		}
+	};
+
+	template <stringifyable T>
+	struct Stringifier<std::reference_wrapper<T>> {
+		constexpr auto operator()(std::reference_wrapper<T> ref, auto&&... args) const noexcept {
+			return flex::toString(ref.get(), std::forward<decltype(args)> (args)...);
+		}
+	};
+
+	template <std::ranges::range T>
+	requires (!flex::string<T> && stringifyable<std::ranges::range_value_t<T>>)
+	struct Stringifier<T> {
+		constexpr auto operator()(flex::forward_of<T> auto&& range) const noexcept {
+			using namespace std::string_literals;
+			std::string result {"["};
+			std::string_view prefix {};
+			std::ranges::for_each(range, [&result, &prefix](auto&& value) noexcept {
+				std::string valueAsString {};
+				if constexpr (flex::failable_stringifyable<decltype(value)>) {
+					flex::error_type auto stringWithError {flex::toString(std::forward<decltype(value)> (value))};
+					valueAsString = flex::error_type_traits<decltype(stringWithError)>::valueOr("");
+				}
+				else
+					valueAsString = flex::toString(std::forward<decltype(value)> (value));
+				result += prefix;
+				result += valueAsString;
+				prefix = ",";
+			});
+			result += "]";
+			return result;
 		}
 	};
 

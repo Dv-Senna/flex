@@ -7,6 +7,7 @@
 #include <type_traits>
 
 #include "flex/containers/inplaceVector.hpp"
+#include "flex/core/stringifier.hpp"
 #include "flex/core/typeSets.hpp"
 #include "flex/core/typeTraits.hpp"
 #include "flex/reflection/aggregate.hpp"
@@ -181,6 +182,7 @@ namespace flex::reflection::userProvided {
 				int()
 			>::type;
 			public:
+				using getter_value_type = flex::extract_signature_return_t<flex::member_pointer_extractor_t<Getter>>;
 				MemberWrapper() = delete;
 				MemberWrapper(const This&) noexcept = delete;
 				auto operator=(const This&) noexcept -> This& = delete;
@@ -196,9 +198,7 @@ namespace flex::reflection::userProvided {
 					(m_instance->*setter)(value);
 				}
 
-				constexpr operator std::add_lvalue_reference_t<flex::extract_signature_return_t<
-					flex::member_pointer_extractor_t<Getter>
-				>> () const
+				constexpr operator std::add_lvalue_reference_t<getter_value_type> () const
 					noexcept(noexcept((m_instance->*getter)()))
 					requires (getter != nullptr)
 				{
@@ -207,9 +207,7 @@ namespace flex::reflection::userProvided {
 
 				constexpr auto operator*() const
 					noexcept(noexcept((m_instance->*getter)()))
-					-> std::add_lvalue_reference_t<flex::extract_signature_return_t<
-						flex::member_pointer_extractor_t<Getter>
-					>>
+					-> std::add_lvalue_reference_t<getter_value_type>
 					requires (getter != nullptr)
 				{
 					return (m_instance->*getter)();
@@ -217,19 +215,14 @@ namespace flex::reflection::userProvided {
 
 				constexpr auto operator->() const
 					noexcept(noexcept((m_instance->*getter)()))
-					-> typename std::add_pointer<flex::extract_signature_return_t<
-						flex::member_pointer_extractor_t<Getter>
-					>>::type
+					-> typename std::add_pointer<getter_value_type>::type
 					requires (getter != nullptr)
 				{
-					using Result = flex::extract_signature_return_t<
-						flex::member_pointer_extractor_t<Getter>
-					>;
 					struct PointerWrapper {
-						Result result;
-						constexpr auto operator->() noexcept -> Result& {return result;}
+						getter_value_type result;
+						constexpr auto operator->() noexcept -> getter_value_type& {return result;}
 					};
-					if constexpr (std::is_reference<Result>::value)
+					if constexpr (std::is_reference<getter_value_type>::value)
 						return &(m_instance->*getter)();
 					else
 						return PointerWrapper{(m_instance->*getter)()};
@@ -493,4 +486,19 @@ namespace flex::reflection::userProvided {
 			}
 		}
 	}
+}
+
+namespace flex {
+	template <typename S, auto getter, auto setter>
+	requires (getter != nullptr
+		&& flex::stringifyable<
+			typename flex::reflection::userProvided::internals::MemberWrapper<S, getter, setter>::getter_value_type
+		>
+	)
+	struct Stringifier<flex::reflection::userProvided::internals::MemberWrapper<S, getter, setter>> {
+		using value_type = flex::reflection::userProvided::internals::MemberWrapper<S, getter, setter>;
+		constexpr auto operator()(flex::forward_of<value_type> auto&& value) const noexcept {
+			return flex::toString(*std::forward<decltype(value)> (value));
+		}
+	};
 }

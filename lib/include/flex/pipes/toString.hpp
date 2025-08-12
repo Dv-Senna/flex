@@ -7,7 +7,7 @@
 
 #include "flex/core/typeTraits.hpp"
 #include "flex/pipes/pipes.hpp"
-#include "flex/reflection/enums.hpp"
+#include "flex/core/stringifier.hpp"
 
 
 namespace flex::pipes {
@@ -18,8 +18,9 @@ namespace flex::pipes {
 
 			template <typename Stringifyable>
 			[[nodiscard]]
-			constexpr auto operator()(Stringifyable &&stringifyable) noexcept {
-				using T = std::remove_cvref_t<Stringifyable>;
+			constexpr auto operator()(flex::stringifyable auto &&value) noexcept {
+				return flex::toString(std::forward<decltype(value)> (value));
+/*				using T = std::remove_cvref_t<Stringifyable>;
 				if constexpr (flex::arithmetic<T>) {
 					if (!m_locale) {
 						constexpr std::size_t chunkSize {16};
@@ -50,7 +51,7 @@ namespace flex::pipes {
 						return std::format(*m_locale, "{}", stringifyable);
 				}
 				else
-					return flex::toString(stringifyable);
+					return flex::toString(stringifyable);*/
 			}
 
 			template <typename Optional>
