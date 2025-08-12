@@ -23,13 +23,39 @@ namespace flex::reflection {
 
 	namespace internals {
 		template <typename T>
-		concept pure_aggregate = flex::aggregate<T> && !flex::reflection::userProvided::has_metadata<T>;
+		concept pure_class_aggregate = flex::class_aggregate<T> && !flex::reflection::userProvided::has_metadata<T>;
+
+		template <typename T>
+		requires (std::is_class<T>::value)
+		consteval auto getTypeName() noexcept -> std::string_view {
+		#ifdef __cpp_impl_reflection
+			if constexpr (has_identifier(^^T))
+				return std::string_view{identifier_of(^^T)};
+			else
+				return std::string_view{display_string_of(^^T)};
+		#else
+			using namespace std::string_view_literals;
+			std::string_view name {std::source_location::current().function_name()};
+			#if defined(__clang__)
+				name = name.substr(name.find("T = ") + "T = "sv.size());
+				name = name.substr(0, name.find_first_of("]"));
+			#elif defined(__GNUC__)
+				name = name.substr(name.find("T = ") + "T = "sv.size());
+				name = name.substr(0, name.find_first_of(";"));
+			#elif defined(_MSC_VER)
+				name = name.substr(name.find("getTypeName<") + "getTypeName<"sv.size());
+				name = name.substr(name.find(" ") + " "sv.size());
+				name = name.substr(0, name.find_last_of(">"));
+			#endif
+			return name;
+		#endif
+		}
 	}
 
-	template <internals::pure_aggregate T>
+	template <internals::pure_class_aggregate T>
 	struct reflection_traits<T> {
 		using type = T;
-		static constexpr auto name {flex::reflection::aggregate::getTypeName<T> ()};
+		static constexpr auto name {internals::getTypeName<T> ()};
 		static constexpr auto member_count {flex::reflection::aggregate::member_count<T>::value};
 		static constexpr auto member_names {flex::reflection::aggregate::getMemberNames<T> ()};
 		using member_types = flex::reflection::aggregate::get_member_types_t<T>;
@@ -44,7 +70,7 @@ namespace flex::reflection {
 	template <flex::reflection::userProvided::has_valid_metadata T>
 	struct reflection_traits<T> {
 		using type = T;
-//		static constexpr auto name {};
+		static constexpr auto name {internals::getTypeName<T> ()};
 		static constexpr auto member_names {flex::reflection::userProvided::getMemberNames<T> ()};
 		static constexpr auto member_count {member_names.size()};
 		using member_types = flex::reflection::userProvided::get_member_types_t<T>;

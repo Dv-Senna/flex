@@ -9,7 +9,6 @@
 	#include <meta>
 #endif
 
-#include "flex/core/typeSets.hpp"
 #include "flex/core/typeTraits.hpp"
 #include "flex/macros/macros.hpp"
 
@@ -144,30 +143,5 @@ namespace flex::reflection::aggregate {
 		loop(loop);
 	#endif
 		return results;
-	}
-
-
-	template <flex::aggregate T>
-	consteval auto getTypeName() noexcept -> std::string_view {
-	#ifdef __cpp_impl_reflection
-		if constexpr (has_identifier(^^T))
-			return std::string_view{identifier_of(^^T)};
-		else
-			return std::string_view{display_string_of(^^T)};
-	#else
-		using namespace std::string_view_literals;
-		std::string_view name {std::source_location::current().function_name()};
-		#if defined(__clang__)
-			name = name.substr(name.find("T = ") + "T = "sv.size());
-			name = name.substr(0, name.find_first_of("]"));
-		#elif defined(__GNUC__)
-			name = name.substr(name.find("T = ") + "T = "sv.size());
-			name = name.substr(0, name.find_first_of(";"));
-		#elif defined(_MSC_VER)
-			name = name.substr(name.find("getTypeName<struct ") + "getTypeName<struct "sv.size());
-			name = name.substr(0, name.find_last_of(">"));
-		#endif
-		return name;
-	#endif
 	}
 }

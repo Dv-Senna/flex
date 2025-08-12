@@ -76,6 +76,9 @@ namespace flex{
 	template <typename T>
 	concept aggregate = std::is_aggregate<T>::value;
 
+	template <typename T>
+	concept class_aggregate = aggregate<T> && std::is_class<T>::value;
+
 
 	template <typename T>
 	struct remove_tuple_reference {
