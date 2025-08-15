@@ -4,15 +4,19 @@
 #include <concepts>
 #include <cstdint>
 #include <format>
+#include <functional>
 #include <ranges>
 #include <type_traits>
+#include <utility>
 
+#include "flex/core/comptime.hpp"
 #include "flex/core/config.hpp"
 #include "flex/core/stringifier.hpp"
 #include "flex/core/typeTraits.hpp"
 #include "flex/reflection/aggregate.hpp"
 #include "flex/reflection/userProvided.hpp"
 
+struct Person;
 
 namespace flex::reflection {
 	/**
@@ -126,14 +130,50 @@ namespace flex::reflection {
 
 
 	namespace internals {
+		template <typename T>
+		struct is_user_defined_member_wrapper : std::false_type {};
+
+		template <typename S, auto getter, auto setter>
+		struct is_user_defined_member_wrapper<
+			userProvided::internals::MemberWrapper<S, getter, setter>
+		> : std::true_type {};
+
+
+		template <typename T>
+		constexpr auto unwrapMember(T&& value) noexcept -> auto& {
+			if constexpr (flex::is_specialization_of<T, std::reference_wrapper>::value)
+				return std::forward<T> (value).get();
+			else if constexpr (is_user_defined_member_wrapper<T>::value)
+				return *std::forward<T> (value);
+			else
+				return std::forward<T> (value);
+		}
+
+
+		template <typename T, typename Func, std::unsigned_integral auto I, typename = void>
+		struct is_member_func_noexcept : std::bool_constant<
+			noexcept(std::declval<Func> ()(unwrapMember(
+				reflection_traits<T>::template getMember<I> (
+					std::declval<std::add_lvalue_reference_t<T>> ()
+				)
+			)))
+		> {};
+
+
+		template <typename T, typename Func, auto I>
+		struct is_member_func_noexcept<T, Func, I,
+			typename std::enable_if<flex::is_specialization_of<
+				typename std::tuple_element<I, typename reflection_traits<T>::member_types>::type, WriteOnly
+			>::value>::type
+		> : std::true_type {};
+
+
 		template <typename T, typename Func,
 			std::unsigned_integral auto I = decltype(reflection_traits<T>::member_count) {0},
 			std::unsigned_integral auto N = reflection_traits<T>::member_count
 		>
 		struct is_foreach_member_func_noexcept : std::bool_constant<
-			noexcept(std::declval<Func> ()(reflection_traits<T>::template getMember<I> (
-				std::declval<std::add_lvalue_reference_t<T>> ()
-			)))
+			is_member_func_noexcept<T, Func, I>::value
 			&& is_foreach_member_func_noexcept<T, Func, I + 1, N>::value
 		> {};
 
@@ -141,14 +181,30 @@ namespace flex::reflection {
 		struct is_foreach_member_func_noexcept<T, Func, N, N> : std::true_type {};
 
 
+
+		template <typename T, typename Func, std::unsigned_integral auto I, typename = void>
+		struct is_named_member_func_noexcept : std::bool_constant<
+			noexcept(std::declval<Func> ()(unwrapMember(
+				reflection_traits<T>::template getMember<I> (
+					std::declval<std::add_lvalue_reference_t<T>> ()
+				)
+			), std::declval<std::string_view> ()))
+		> {};
+
+
+		template <typename T, typename Func, auto I>
+		struct is_named_member_func_noexcept<T, Func, I,
+			typename std::enable_if<flex::is_specialization_of<
+				typename std::tuple_element<I, typename reflection_traits<T>::member_types>::type, WriteOnly
+			>::value>::type
+		> : std::true_type {};
+
 		template <typename T, typename Func,
 			std::unsigned_integral auto I = decltype(reflection_traits<T>::member_count) {0},
 			std::unsigned_integral auto N = reflection_traits<T>::member_count
 		>
 		struct is_foreach_named_member_func_noexcept : std::bool_constant<
-			noexcept(std::declval<Func> ()(reflection_traits<T>::template getMember<I> (
-				std::declval<std::add_lvalue_reference_t<T>> ()
-			), std::declval<std::string_view> ()))
+			is_named_member_func_noexcept<T, Func, I>::value
 			&& is_foreach_named_member_func_noexcept<T, Func, I + 1, N>::value
 		> {};
 
@@ -164,7 +220,9 @@ namespace flex::reflection {
 		auto loop {[&, instance = std::forward<decltype(instance)> (instance)]
 			<std::unsigned_integral auto I = CountT{0}> (auto& loop) mutable
 		{
-			func(reflection_traits<T>::template getMember<I> (instance));
+			using Member = std::tuple_element<I, typename reflection_traits<T>::member_types>;
+			if constexpr (!flex::is_specialization_of<Member, WriteOnly>::value)
+				func(internals::unwrapMember(reflection_traits<T>::template getMember<I> (instance)));
 			if constexpr (I + 1 < reflection_traits<T>::member_count)
 				loop.template operator() <I + 1> (loop);
 		}};
@@ -182,34 +240,18 @@ namespace flex::reflection {
 		auto loop {[&, instance = std::forward<decltype(instance)> (instance)]
 			<std::unsigned_integral auto I = CountT{0}> (auto& loop) mutable
 		{
-			func(
-				reflection_traits<T>::template getMember<I> (instance),
-				reflection_traits<T>::member_names[I]
-			);
+			using Member = typename std::tuple_element<I, typename reflection_traits<T>::member_types>::type;
+			if constexpr (!flex::is_specialization_of<Member, WriteOnly>::value) {
+				func(
+					internals::unwrapMember(reflection_traits<T>::template getMember<I> (instance)),
+					reflection_traits<T>::member_names[I]
+				);
+			}
 			if constexpr (I + 1 < reflection_traits<T>::member_count)
 				loop.template operator() <I + 1> (loop);
 		}};
 		loop(loop);
 	}
-
-
-	namespace internals {
-	#if __cplusplus >= FLEX_CPP_23
-		template <typename T>
-		concept formattable = std::formattable<T, char>;
-	#else
-		template <typename T>
-		concept formattable = requires(T& value, std::format_context ctx) {
-			std::formatter<std::remove_cvref_t<T>> ().format(value, ctx);
-		};
-	#endif
-	}
-
-	struct StringifyStyle {
-		bool prettify {false};
-		std::uint32_t indentSize {4};
-		std::uint32_t currentIndent {0};
-	};
 }
 
 
@@ -218,7 +260,7 @@ namespace flex {
 	struct Stringifier<T> {
 		constexpr auto operator() (
 			flex::forward_of<T> auto&& value,
-			const flex::reflection::StringifyStyle& style = {}
+			const flex::StringifyStyle& style = {}
 		) const noexcept -> std::string {
 			std::string_view prefix {};
 			std::string indent {};
@@ -228,44 +270,12 @@ namespace flex {
 				indent = std::string(style.currentIndent + style.indentSize, ' ');
 			}
 
-			auto processStringifyStyle = [](flex::reflection::StringifyStyle style) {
-				if (!style.prettify)
-					return style;
-				style.currentIndent += style.indentSize;
-				return style;
-			};
-
 			flex::reflection::foreachNamedMember(std::forward<decltype(value)> (value), [
-				&style, &prefix, &result, &processStringifyStyle, &indent
+				&style, &prefix, &result, &indent
 			](
 				auto& member, std::string_view name
 			) {
-				using Member = std::remove_reference_t<decltype(member)>;
-
-				std::string memberValueAsString {};
-				if constexpr (flex::reflection::internals::formattable<Member>)
-					memberValueAsString = std::format("{}", member);
-				else if constexpr (flex::failable_stringifyable<Member>) {
-					using ErrorTraits = flex::error_type_traits<decltype(flex::toString(member))>;
-					using ValueType = typename ErrorTraits::ValueType;
-					if constexpr (flex::stringifyable_with<Member, flex::reflection::StringifyStyle>) {
-						memberValueAsString = ErrorTraits::getValueOr(
-							flex::toString(member, processStringifyStyle(style)), ValueType{"<to-string-error>"}
-						);
-					}
-					else {
-						memberValueAsString = ErrorTraits::getValueOr(
-							flex::toString(member), ValueType{"<to-string-error>"}
-						);
-					}
-				}
-				else {
-					if constexpr (flex::stringifyable_with<Member, flex::reflection::StringifyStyle>)
-						memberValueAsString = flex::toString(member, processStringifyStyle(style));
-					else
-						memberValueAsString = flex::toString(member);
-				}
-
+				const std::string memberValueAsString {flex::internals::reflectedValueToString(member, style)};
 				result += std::format("{}{}{}={}", prefix, indent, name, memberValueAsString);
 				if (style.prettify)
 					prefix = ",\n";

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <concepts>
+#include <format>
 #include <limits>
 #include <optional>
 #include <string>
@@ -418,5 +419,25 @@ namespace flex{
 	struct WriteOnly {
 		using type = T;
 	};
+
+
+	template <typename T, template <typename...> typename Template>
+	struct is_specialization_of : std::false_type {};
+	template <template <typename...> typename Template, typename... Args>
+	struct is_specialization_of<Template<Args...>, Template> : std::true_type {};
+
+	template <typename T, template <typename...> typename Template>
+	concept specialization_of = is_specialization_of<T, Template>::value;
+
+
+	#if __cplusplus >= FLEX_CPP_23
+		template <typename T>
+		concept formattable = std::formattable<T, char>;
+	#else
+		template <typename T>
+		concept formattable = requires(T& value, std::format_context ctx) {
+			std::formatter<std::remove_cvref_t<T>> ().format(value, ctx);
+		};
+	#endif
 
 } // namespace flex

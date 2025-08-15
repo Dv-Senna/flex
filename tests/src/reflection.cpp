@@ -80,10 +80,6 @@ static_assert(std::same_as<
 	flex::reflection::reflection_traits<Address>::member_types,
 	std::tuple<std::string, int, int, std::string, std::string>
 >);
-
-static_assert(!noexcept(
-	flex::reflection::foreachNamedMember(std::declval<Address&> (), [](auto&, std::string_view) {})
-));
 static_assert(noexcept(
 	flex::reflection::foreachNamedMember(std::declval<Address&> (), [](auto&, std::string_view) noexcept {})
 ));
@@ -92,8 +88,8 @@ static_assert(flex::stringifyable<Address>);
 static_assert(flex::stringifyable<Person>);
 static_assert(flex::nonfailable_stringifyable<Address>);
 static_assert(flex::nonfailable_stringifyable<Person>);
-static_assert(flex::stringifyable_with<Address, flex::reflection::StringifyStyle>);
-static_assert(flex::stringifyable_with<Person, flex::reflection::StringifyStyle>);
+static_assert(flex::stringifyable_with<Address, flex::StringifyStyle>);
+static_assert(flex::stringifyable_with<Person, flex::StringifyStyle>);
 
 
 TEST_CASE("reflection_traits", "[reflection]") {
@@ -117,15 +113,13 @@ TEST_CASE("reflection_traits", "[reflection]") {
 	flex::reflection::reflection_traits<Office>::getMember<3u> (office) = std::vector{person, person, person};
 	flex::reflection::reflection_traits<Office>::getMember<4u> (office).get() = 42;
 	std::cout << flex::toString(office.mainAddress) << std::endl;
-	std::cout << "getMember():" << std::endl;
-	for (const auto& member : office.getMembers())
-		std::cout << "\t" << flex::toString(member) << std::endl;
-	std::cout << "getMember<2u> ():" << std::endl;
-	for (const auto& member : *flex::reflection::reflection_traits<Office>::getMember<2u> (office))
-		std::cout << "\t" << flex::toString(member) << std::endl;
+	std::cout << flex::toString(office.getMembers()) << std::endl;
+	std::cout << flex::toString(*flex::reflection::reflection_traits<Office>::getMember<2u> (office)) << std::endl;
 	std::cout << office.value << std::endl;
 
-	std::cout << "0..16=" << flex::toString(std::views::iota(0, 16));
+	std::cout << flex::toString(office, flex::StringifyStyle{.prettify = true}) << std::endl;
+
+	std::cout << "0..16=" << flex::toString(std::views::iota(0, 16)) << std::endl;
 
 	REQUIRE(flex::reflection::reflection_traits<Address>::name == "Address");
 	std::size_t i {};
@@ -145,7 +139,7 @@ TEST_CASE("reflection_traits", "[reflection]") {
 	REQUIRE(flex::toString(person) == "{firstname=Albert,lastname=Einstein,age=26,address="
 		"{street=Kramgasse,number=49,code=3000,town=Bern,country=Switzerland}}"
 	);
-	REQUIRE(flex::toString(address, flex::reflection::StringifyStyle{.prettify = true}) == "{\n"
+	REQUIRE(flex::toString(address, flex::StringifyStyle{.prettify = true}) == "{\n"
 		"    street=Kramgasse,\n"
 		"    number=49,\n"
 		"    code=3000,\n"
@@ -153,7 +147,7 @@ TEST_CASE("reflection_traits", "[reflection]") {
 		"    country=Switzerland\n"
 		"}"
 	);
-	REQUIRE(flex::toString(person, flex::reflection::StringifyStyle{.prettify = true}) == "{\n"
+	REQUIRE(flex::toString(person, flex::StringifyStyle{.prettify = true}) == "{\n"
 		"    firstname=Albert,\n"
 		"    lastname=Einstein,\n"
 		"    age=26,\n"

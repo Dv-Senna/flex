@@ -2,18 +2,32 @@
 
 #include <algorithm>
 #include <charconv>
+#include <cstdint>
 #include <functional>
 #include <ranges>
-#include <sstream>
 #include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
 
+#include "flex/core/comptime.hpp"
 #include "flex/core/errorType.hpp"
 #include "flex/core/typeTraits.hpp"
 
 namespace flex {
+	struct StringifyStyle {
+		bool prettify {false};
+		std::uint32_t indentSize {4};
+		std::uint32_t currentIndent {0};
+	};
+
+	constexpr auto processStringifyStyle(flex::StringifyStyle style) {
+		if (!style.prettify)
+			return style;
+		style.currentIndent += style.indentSize;
+		return style;
+	};
+
 	template <typename T>
 	struct Stringifier;
 
@@ -42,6 +56,7 @@ namespace flex {
 		};
 
 
+	[[nodiscard("Converting a value to a string can be a slow operation. Don't do it if you don't use its result")]]
 	constexpr auto toString(stringifyable auto&& value, auto&&... args) noexcept {
 		return Stringifier<std::remove_cvref_t<decltype(value)>> {}(
 			std::forward<decltype(value)> (value),
@@ -88,26 +103,72 @@ namespace flex {
 		}
 	};
 
-	template <std::ranges::range T>
+
+	namespace internals {
+		constexpr auto reflectedValueToString(
+			auto&& value, const StringifyStyle& style
+		) -> std::string {
+			using Member = std::remove_reference_t<decltype(value)>;
+
+			if constexpr (flex::formattable<Member>)
+				return std::format("{}", std::forward<decltype(value)> (value));
+			else if constexpr (flex::failable_stringifyable<Member>) {
+				using ErrorTraits = flex::error_type_traits<decltype(
+					flex::toString(std::forward<decltype(value)> (value))
+				)>;
+				using ValueType = typename ErrorTraits::ValueType;
+				if constexpr (flex::stringifyable_with<Member, flex::StringifyStyle>) {
+					return ErrorTraits::getValueOr(
+						flex::toString(
+							std::forward<decltype(value)> (value), flex::processStringifyStyle(style)
+						), ValueType{"<to-string-error>"}
+					);
+				}
+				else {
+					return ErrorTraits::getValueOr(
+						flex::toString(std::forward<decltype(value)> (value)), ValueType{"<to-string-error>"}
+					);
+				}
+			}
+			else if constexpr (flex::nonfailable_stringifyable<Member>) {
+				if constexpr (flex::stringifyable_with<Member, flex::StringifyStyle>)
+					return flex::toString(std::forward<decltype(value)> (value), flex::processStringifyStyle(style));
+				else
+					return flex::toString(std::forward<decltype(value)> (value));
+			}
+			else
+				flex::comptimeErrorWithTypes<Member> ("Type can't be made into a string type");
+			return "";
+		}
+	}
+
+	template <std::ranges::input_range T>
 	requires (!flex::string<T> && stringifyable<std::ranges::range_value_t<T>>)
 	struct Stringifier<T> {
-		constexpr auto operator()(flex::forward_of<T> auto&& range) const noexcept {
-			using namespace std::string_literals;
-			std::string result {"["};
+		constexpr auto operator()(flex::forward_of<T> auto&& range, const StringifyStyle& style = {}) const noexcept {
 			std::string_view prefix {};
-			std::ranges::for_each(range, [&result, &prefix](auto&& value) noexcept {
-				std::string valueAsString {};
-				if constexpr (flex::failable_stringifyable<decltype(value)>) {
-					flex::error_type auto stringWithError {flex::toString(std::forward<decltype(value)> (value))};
-					valueAsString = flex::error_type_traits<decltype(stringWithError)>::valueOr("");
-				}
+			std::string indent {};
+			std::string result {"["};
+			if (style.prettify) {
+				prefix = "\n";
+				indent = std::string(style.currentIndent + style.indentSize, ' ');
+			}
+
+			std::ranges::for_each(range, [&result, &prefix, &indent, &style](auto&& value) noexcept {
+				const std::string valueAsString {internals::reflectedValueToString(
+					std::forward<decltype(value)> (value), style
+				)};
+				result += std::format("{}{}{}", prefix, indent, valueAsString);
+				if (style.prettify)
+					prefix = ",\n";
 				else
-					valueAsString = flex::toString(std::forward<decltype(value)> (value));
-				result += prefix;
-				result += valueAsString;
-				prefix = ",";
+					prefix = ",";
 			});
-			result += "]";
+			if (style.prettify) {
+				result.push_back('\n');
+				result += std::string(style.currentIndent, ' ');
+			}
+			result.push_back(']');
 			return result;
 		}
 	};
