@@ -91,7 +91,7 @@ namespace flex {
 
 	template <flex::string T>
 	struct Stringifier<T> {
-		constexpr auto operator()(flex::variant_forward_of<T> auto&& value) const noexcept {
+		constexpr auto operator()(flex::forward_of<T> auto&& value) const noexcept {
 			return std::forward<decltype(value)> (value);
 		}
 	};

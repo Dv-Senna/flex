@@ -1,3 +1,4 @@
+#include "flex/core/stringifier.hpp"
 #include <format>
 #include <iomanip>
 #include <iostream>
@@ -6,6 +7,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <flex/reflection/comparaison.hpp>
 #include <flex/reflection/reflection.hpp>
 #include <flex/reflection/userProvided.hpp>
 
@@ -101,25 +103,36 @@ TEST_CASE("reflection_traits", "[reflection]") {
 	flex::reflection::reflection_traits<Address>::getMember<3u> (address) = "Bern";
 	flex::reflection::reflection_traits<Address>::getMember<4u> (address) = "Switzerland";
 
+	static_assert(flex::reflection::Comparator<Address>::is_equal_comparable);
+
+	REQUIRE(flex::reflection::equal(address, address));
+	REQUIRE(address.street  == "Kramgasse");
+	REQUIRE(address.number  == 49);
+	REQUIRE(address.code    == 3000);
+	REQUIRE(address.town    == "Bern");
+	REQUIRE(address.country == "Switzerland");
+
 	Person person {};
 	flex::reflection::reflection_traits<Person>::getMember<0u> (person) = "Albert";
 	flex::reflection::reflection_traits<Person>::getMember<1u> (person) = "Einstein";
 	flex::reflection::reflection_traits<Person>::getMember<2u> (person) = 26;
 	flex::reflection::reflection_traits<Person>::getMember<3u> (person) = address;
 
+	REQUIRE(flex::reflection::equal(person, person));
+	REQUIRE(person.firstname == "Albert");
+	REQUIRE(person.lastname  == "Einstein");
+	REQUIRE(person.age       == 26);
+	REQUIRE(flex::reflection::equal(person.address, address));
+
 	Office office {};
 	flex::reflection::reflection_traits<Office>::getMember<0u> (office).get() = address;
 	flex::reflection::reflection_traits<Office>::getMember<1u> (office) = std::vector{person, person};
 	flex::reflection::reflection_traits<Office>::getMember<3u> (office) = std::vector{person, person, person};
 	flex::reflection::reflection_traits<Office>::getMember<4u> (office).get() = 42;
-	std::cout << flex::toString(office.mainAddress) << std::endl;
-	std::cout << flex::toString(office.getMembers()) << std::endl;
-	std::cout << flex::toString(*flex::reflection::reflection_traits<Office>::getMember<2u> (office)) << std::endl;
-	std::cout << office.value << std::endl;
 
-	std::cout << flex::toString(office, flex::StringifyStyle{.prettify = true}) << std::endl;
+//	REQUIRE(flex::reflection::equal(office, office));
+//	REQUIRE(office);
 
-	std::cout << "0..16=" << flex::toString(std::views::iota(0, 16)) << std::endl;
 
 	REQUIRE(flex::reflection::reflection_traits<Address>::name == "Address");
 	std::size_t i {};
@@ -158,6 +171,111 @@ TEST_CASE("reflection_traits", "[reflection]") {
 		"        town=Bern,\n"
 		"        country=Switzerland\n"
 		"    }\n"
+		"}"
+	);
+
+	REQUIRE(flex::toString(office) ==
+		"{address={street=Kramgasse,number=49,code=3000,town=Bern,country="
+		"Switzerland},members=[{firstname=Albert,lastname=Einstein,age=26,"
+		"address={street=Kramgasse,number=49,code=3000,town=Bern,country="
+		"Switzerland}},{firstname=Albert,lastname=Einstein,age=26,address={"
+		"street=Kramgasse,number=49,code=3000,town=Bern,country="
+		"Switzerland}},{firstname=Albert,lastname=Einstein,age=26,address={"
+		"street=Kramgasse,number=49,code=3000,town=Bern,country="
+		"Switzerland}}],read-only-members=[{firstname=Albert,lastname="
+		"Einstein,age=26,address={street=Kramgasse,number=49,code=3000,"
+		"town=Bern,country=Switzerland}},{firstname=Albert,lastname="
+		"Einstein,age=26,address={street=Kramgasse,number=49,code=3000,"
+		"town=Bern,country=Switzerland}},{firstname=Albert,lastname="
+		"Einstein,age=26,address={street=Kramgasse,number=49,code=3000,"
+		"town=Bern,country=Switzerland}}],newValue=42}"
+	);
+	REQUIRE(flex::toString(office, flex::StringifyStyle{.prettify = true}) ==
+		"{\n"
+		"    address={\n"
+		"        street=Kramgasse,\n"
+		"        number=49,\n"
+		"        code=3000,\n"
+		"        town=Bern,\n"
+		"        country=Switzerland\n"
+		"    },\n"
+		"    members=[\n"
+		"        {\n"
+		"            firstname=Albert,\n"
+		"            lastname=Einstein,\n"
+		"            age=26,\n"
+		"            address={\n"
+		"                street=Kramgasse,\n"
+		"                number=49,\n"
+		"                code=3000,\n"
+		"                town=Bern,\n"
+		"                country=Switzerland\n"
+		"            }\n"
+		"        },\n"
+		"        {\n"
+		"            firstname=Albert,\n"
+		"            lastname=Einstein,\n"
+		"            age=26,\n"
+		"            address={\n"
+		"                street=Kramgasse,\n"
+		"                number=49,\n"
+		"                code=3000,\n"
+		"                town=Bern,\n"
+		"                country=Switzerland\n"
+		"            }\n"
+		"        },\n"
+		"        {\n"
+		"            firstname=Albert,\n"
+		"            lastname=Einstein,\n"
+		"            age=26,\n"
+		"            address={\n"
+		"                street=Kramgasse,\n"
+		"                number=49,\n"
+		"                code=3000,\n"
+		"                town=Bern,\n"
+		"                country=Switzerland\n"
+		"            }\n"
+		"        }\n"
+		"    ],\n"
+		"    read-only-members=[\n"
+		"        {\n"
+		"            firstname=Albert,\n"
+		"            lastname=Einstein,\n"
+		"            age=26,\n"
+		"            address={\n"
+		"                street=Kramgasse,\n"
+		"                number=49,\n"
+		"                code=3000,\n"
+		"                town=Bern,\n"
+		"                country=Switzerland\n"
+		"            }\n"
+		"        },\n"
+		"        {\n"
+		"            firstname=Albert,\n"
+		"            lastname=Einstein,\n"
+		"            age=26,\n"
+		"            address={\n"
+		"                street=Kramgasse,\n"
+		"                number=49,\n"
+		"                code=3000,\n"
+		"                town=Bern,\n"
+		"                country=Switzerland\n"
+		"            }\n"
+		"        },\n"
+		"        {\n"
+		"            firstname=Albert,\n"
+		"            lastname=Einstein,\n"
+		"            age=26,\n"
+		"            address={\n"
+		"                street=Kramgasse,\n"
+		"                number=49,\n"
+		"                code=3000,\n"
+		"                town=Bern,\n"
+		"                country=Switzerland\n"
+		"            }\n"
+		"        }\n"
+		"    ],\n"
+		"    newValue=42\n"
 		"}"
 	);
 }

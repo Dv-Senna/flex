@@ -2,7 +2,6 @@
 
 #include <array>
 #include <concepts>
-#include <cstdint>
 #include <format>
 #include <functional>
 #include <ranges>
@@ -10,7 +9,6 @@
 #include <utility>
 
 #include "flex/core/comptime.hpp"
-#include "flex/core/config.hpp"
 #include "flex/core/stringifier.hpp"
 #include "flex/core/typeTraits.hpp"
 #include "flex/reflection/aggregate.hpp"
@@ -159,7 +157,6 @@ namespace flex::reflection {
 			)))
 		> {};
 
-
 		template <typename T, typename Func, auto I>
 		struct is_member_func_noexcept<T, Func, I,
 			typename std::enable_if<flex::is_specialization_of<
@@ -180,6 +177,45 @@ namespace flex::reflection {
 		template <typename T, typename Func, std::unsigned_integral auto N>
 		struct is_foreach_member_func_noexcept<T, Func, N, N> : std::true_type {};
 
+
+		template <typename First, typename Func, std::unsigned_integral auto I, typename = void, typename ...T>
+		struct is_zip_member_func_noexcept : std::bool_constant<
+			noexcept(std::declval<Func> ()(unwrapMember(
+				reflection_traits<T>::template getMember<I> (
+					std::declval<std::add_lvalue_reference_t<T>> ()
+				)
+			)...))
+		> {};
+
+		template <typename First, typename Func, auto I, typename ...T>
+		struct is_zip_member_func_noexcept<First, Func, I,
+			typename std::enable_if<flex::is_specialization_of<
+				typename std::tuple_element<I, typename reflection_traits<First>::member_types>::type, WriteOnly
+			>::value>::type,
+		T...> : std::true_type {};
+
+
+		template <typename First, typename Func,
+			std::unsigned_integral auto I = decltype(reflection_traits<First>::member_count) {0},
+			std::unsigned_integral auto N = reflection_traits<First>::member_count,
+			typename ...T
+		>
+		struct is_foreach_zip_member_func_noexcept : std::bool_constant<
+			is_zip_member_func_noexcept<First, Func, I, void, T...>::value
+			&& is_foreach_zip_member_func_noexcept<First, Func, I + 1, N, T...>::value
+		> {};
+
+		template <typename First, typename Func, std::unsigned_integral auto N, typename ...T>
+		struct is_foreach_zip_member_func_noexcept<First, Func, N, N, T...> : std::true_type {};
+
+		template <typename Func, typename ...T>
+		constexpr auto is_foreach_zip_member_func_noexcept_v = is_foreach_zip_member_func_noexcept<
+			typename std::tuple_element<0, std::tuple<T...>>::type,
+			Func,
+			decltype(reflection_traits<typename std::tuple_element<0, std::tuple<T...>>::type>::member_count) {0},
+			reflection_traits<typename std::tuple_element<0, std::tuple<T...>>::type>::member_count,
+			T...
+		>::value;
 
 
 		template <typename T, typename Func, std::unsigned_integral auto I, typename = void>
@@ -221,8 +257,59 @@ namespace flex::reflection {
 			<std::unsigned_integral auto I = CountT{0}> (auto& loop) mutable
 		{
 			using Member = std::tuple_element<I, typename reflection_traits<T>::member_types>;
-			if constexpr (!flex::is_specialization_of<Member, WriteOnly>::value)
-				func(internals::unwrapMember(reflection_traits<T>::template getMember<I> (instance)));
+			if constexpr (!flex::is_specialization_of<Member, WriteOnly>::value) {
+				using FuncRet = std::invoke_result_t<
+					decltype(func),
+					std::add_lvalue_reference_t<std::tuple_element_t<I, typename reflection_traits<T>::member_types>>
+				>;
+				if constexpr (std::is_void<FuncRet>::value)
+					func(internals::unwrapMember(reflection_traits<T>::template getMember<I> (instance)));
+				else if constexpr (std::same_as<FuncRet, bool>) {
+					if (!func(internals::unwrapMember(reflection_traits<T>::template getMember<I> (instance))))
+						return;
+				}
+				else
+					flex::comptimeErrorWithTypes<FuncRet> ("Can't have callback with the given return type");
+			}
+			if constexpr (I + 1 < reflection_traits<T>::member_count)
+				loop.template operator() <I + 1> (loop);
+		}};
+		loop(loop);
+	}
+
+	constexpr auto zipForeachMember(auto&& func, reflectable auto&&... instance) noexcept(
+		internals::is_foreach_zip_member_func_noexcept_v<
+			decltype(func),
+			std::remove_reference_t<decltype(instance)>...
+		>
+	) -> void
+		requires (sizeof...(instance) > 0 && (std::same_as<
+			std::remove_cvref_t<std::tuple_element_t<0, std::tuple<decltype(instance)...>>>,
+			std::remove_cvref_t<decltype(instance)>
+		> && ...))
+	{
+		using T = std::remove_cvref_t<std::tuple_element_t<0, std::tuple<decltype(instance)...>>>;
+		using CountT = decltype(reflection_traits<T>::member_count);
+		auto loop {[&, ...instance = std::forward<decltype(instance)> (instance)]
+			<std::unsigned_integral auto I = CountT{0}> (auto& loop) mutable
+		{
+			using Member = std::tuple_element<I, typename reflection_traits<T>::member_types>;
+			if constexpr (!flex::is_specialization_of<Member, WriteOnly>::value) {
+				using FuncRet = std::invoke_result_t<
+					decltype(func),
+					std::add_lvalue_reference_t<std::tuple_element_t<I, typename reflection_traits<
+						std::remove_cvref_t<decltype(instance)>
+					>::member_types>>...
+				>;
+				if constexpr (std::is_void<FuncRet>::value)
+					func(internals::unwrapMember(reflection_traits<T>::template getMember<I> (instance))...);
+				else if constexpr (std::same_as<FuncRet, bool>) {
+					if (!func(internals::unwrapMember(reflection_traits<T>::template getMember<I> (instance))...))
+						return;
+				}
+				else
+					flex::comptimeErrorWithTypes<FuncRet> ("Can't have callback with the given return type");
+			}
 			if constexpr (I + 1 < reflection_traits<T>::member_count)
 				loop.template operator() <I + 1> (loop);
 		}};
@@ -242,10 +329,26 @@ namespace flex::reflection {
 		{
 			using Member = typename std::tuple_element<I, typename reflection_traits<T>::member_types>::type;
 			if constexpr (!flex::is_specialization_of<Member, WriteOnly>::value) {
-				func(
-					internals::unwrapMember(reflection_traits<T>::template getMember<I> (instance)),
-					reflection_traits<T>::member_names[I]
-				);
+				using FuncRet = std::invoke_result_t<
+					decltype(func),
+					std::add_lvalue_reference_t<std::tuple_element_t<I, typename reflection_traits<T>::member_types>>,
+					std::string_view
+				>;
+				if constexpr (std::is_void<FuncRet>::value) {
+					func(
+						internals::unwrapMember(reflection_traits<T>::template getMember<I> (instance)),
+						reflection_traits<T>::member_names[I]
+					);
+				}
+				else if constexpr (std::same_as<FuncRet, bool>) {
+					if (!func(
+						internals::unwrapMember(reflection_traits<T>::template getMember<I> (instance)),
+						reflection_traits<T>::member_names[I]
+					))
+						return;
+				}
+				else
+					flex::comptimeErrorWithTypes<FuncRet> ("Can't have callback with the given return type");
 			}
 			if constexpr (I + 1 < reflection_traits<T>::member_count)
 				loop.template operator() <I + 1> (loop);
@@ -291,3 +394,4 @@ namespace flex {
 		}
 	};
 }
+
