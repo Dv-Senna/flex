@@ -420,6 +420,8 @@ namespace flex{
 	requires std::same_as<T, std::remove_const_t<T>>
 	struct WriteOnly {
 		using type = T;
+		private:
+			std::byte noAggregate;
 	};
 
 
@@ -430,6 +432,10 @@ namespace flex{
 
 	template <typename T, template <typename...> typename Template>
 	concept specialization_of = is_specialization_of<T, Template>::value;
+
+	static_assert(specialization_of<std::string, std::basic_string>);
+	static_assert(!specialization_of<std::string_view, std::basic_string>);
+	static_assert(!specialization_of<int, std::basic_string>);
 
 
 	#if __cplusplus >= FLEX_CPP_23

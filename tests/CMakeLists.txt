@@ -33,7 +33,9 @@ function(add_test TARGET)
 	if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 		target_compile_options(${TARGET_NAME} PRIVATE -Wall -Wextra -pedantic)
 	elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-		target_compile_options(${TARGET_NAME} PRIVATE -Wall -Wextra -pedantic -fconcepts-diagnostics-depth=2)
+		target_compile_options(${TARGET_NAME} PRIVATE -Wall -Wextra -pedantic
+			-fconcepts-diagnostics-depth=2 -ftemplate-backtrace-limit=0
+		)
 	elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 		target_compile_options(${TARGET_NAME} PRIVATE /W4)
 	endif()

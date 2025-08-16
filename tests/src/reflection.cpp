@@ -130,8 +130,10 @@ TEST_CASE("reflection_traits", "[reflection]") {
 	flex::reflection::reflection_traits<Office>::getMember<3u> (office) = std::vector{person, person, person};
 	flex::reflection::reflection_traits<Office>::getMember<4u> (office).get() = 42;
 
-//	REQUIRE(flex::reflection::equal(office, office));
-//	REQUIRE(office);
+	REQUIRE(flex::reflection::equal(office, office));
+	REQUIRE(flex::reflection::equal(office.mainAddress, address));
+	REQUIRE(office.value == 42);
+	REQUIRE(flex::reflection::equal(office.m_members, std::vector{person, person, person}));
 
 
 	REQUIRE(flex::reflection::reflection_traits<Address>::name == "Address");

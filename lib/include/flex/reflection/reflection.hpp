@@ -256,12 +256,12 @@ namespace flex::reflection {
 		auto loop {[&, instance = std::forward<decltype(instance)> (instance)]
 			<std::unsigned_integral auto I = CountT{0}> (auto& loop) mutable
 		{
-			using Member = std::tuple_element<I, typename reflection_traits<T>::member_types>;
+			using Member = typename std::tuple_element<I, typename reflection_traits<T>::member_types>::type;
 			if constexpr (!flex::is_specialization_of<Member, WriteOnly>::value) {
-				using FuncRet = std::invoke_result_t<
+				using FuncRet = typename std::invoke_result<
 					decltype(func),
 					std::add_lvalue_reference_t<std::tuple_element_t<I, typename reflection_traits<T>::member_types>>
-				>;
+				>::type;
 				if constexpr (std::is_void<FuncRet>::value)
 					func(internals::unwrapMember(reflection_traits<T>::template getMember<I> (instance)));
 				else if constexpr (std::same_as<FuncRet, bool>) {
@@ -293,7 +293,7 @@ namespace flex::reflection {
 		auto loop {[&, ...instance = std::forward<decltype(instance)> (instance)]
 			<std::unsigned_integral auto I = CountT{0}> (auto& loop) mutable
 		{
-			using Member = std::tuple_element<I, typename reflection_traits<T>::member_types>;
+			using Member = typename std::tuple_element<I, typename reflection_traits<T>::member_types>::type;
 			if constexpr (!flex::is_specialization_of<Member, WriteOnly>::value) {
 				using FuncRet = std::invoke_result_t<
 					decltype(func),

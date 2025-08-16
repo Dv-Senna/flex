@@ -3,7 +3,9 @@
 #include "flex/core/comptime.hpp"
 #include "flex/reflection/reflection.hpp"
 #include "flex/core/typeTraits.hpp"
+#include <bits/ranges_algo.h>
 #include <concepts>
+#include <ranges>
 #include <tuple>
 #include <type_traits>
 
@@ -307,69 +309,123 @@ namespace flex::reflection {
 	};
 
 
+	template <std::ranges::input_range Range>
+	struct Comparator<Range> {
+		static constexpr bool is_equal_comparable = []() consteval {
+			using T = std::ranges::range_value_t<Range>;
+			return internals::op_refl_comparable<T, internals::CompOp::eEqual>;
+		} ();
+		static constexpr bool is_noexcept_equal_comparable = []() consteval {
+			using T = std::ranges::range_value_t<Range>;
+			return internals::noexcept_op_refl_comparable<T, internals::CompOp::eEqual>;
+		} ();
+		static constexpr bool is_three_way_comparable = false;
+		static constexpr bool is_noexcept_three_way_comparable = false;
+		static constexpr bool is_less_comparable = false;
+		static constexpr bool is_noexcept_less_comparable = false;
+		static constexpr bool is_less_or_equal_comparable = false;
+		static constexpr bool is_noexcept_less_or_equal_comparable = false;
+		static constexpr bool is_greater_comparable = false;
+		static constexpr bool is_noexcept_greater_comparable = false;
+		static constexpr bool is_greater_or_equal_comparable = false;
+		static constexpr bool is_noexcept_greater_or_equal_comparable = false;
+
+
+		template <typename T, typename = void>
+		struct test : std::false_type {};
+
+		template <typename T>
+		struct test<T, std::void_t<decltype(std::declval<T> () == std::declval<T> ())>> : std::true_type {};
+
+		static constexpr auto equal(flex::forward_of<Range> auto&& lhs, flex::forward_of<Range> auto&& rhs)
+			noexcept (is_noexcept_equal_comparable)
+			-> bool
+			requires is_equal_comparable
+		{
+			return std::ranges::equal(
+				std::forward<decltype(lhs)> (lhs),
+				std::forward<decltype(rhs)> (rhs),
+				[](auto&& lhs, auto&& rhs) {
+					return flex::reflection::equal(
+						std::forward<decltype(lhs)> (lhs),
+						std::forward<decltype(rhs)> (rhs)
+					);
+				}
+			);
+		}
+	};
+
+
 	template <reflectable T>
 	struct Comparator<T> {
 		private:
 			using ReflTraits = flex::reflection::reflection_traits<T>;
 
-			// moved loop as extern function instead of lambda because clang does not want to consteval
-			template <internals::CompOp op, decltype(ReflTraits::member_count) I = 0>
-			static constexpr auto is_op_comparable_loop() -> bool {
+			template <decltype(ReflTraits::member_count) I = 0>
+			static constexpr auto is_equal_comparable_loop() -> bool {
 				using Member = typename std::tuple_element<I, typename ReflTraits::member_types>::type;
 				if constexpr (!flex::specialization_of<Member, flex::WriteOnly>
-					&& !internals::op_refl_comparable<Member, op>
+					&& !internals::op_refl_comparable<Member, internals::CompOp::eEqual>
 				)
 					return false;
 				if constexpr (I + 1 < ReflTraits::member_count)
-					return is_op_comparable_loop<op, I + 1> ();
+					return is_equal_comparable_loop<I + 1> ();
 				else
 					return true;
 			};
 
-			template <internals::CompOp op>
-			static constexpr bool is_op_comparable_v = []() constexpr {
-				if constexpr (internals::op_comparable<T, op>)
-					return true;
-				else {
-					return is_op_comparable_loop<op> ();
-				}
-			} ();
-
-			// moved loop as extern function instead of lambda because clang does not want to consteval
-			template <internals::CompOp op, decltype(ReflTraits::member_count) I = 0>
-			static constexpr auto is_noexcept_op_comparable_loop() -> bool {
+			template <decltype(ReflTraits::member_count) I = 0>
+			static constexpr auto is_noexcept_equal_comparable_loop() -> bool {
 				using Member = typename std::tuple_element<I, typename ReflTraits::member_types>::type;
 				if constexpr (!flex::specialization_of<Member, flex::WriteOnly>
-					&& !internals::noexcept_op_refl_comparable<Member, op>
+					&& !internals::noexcept_op_refl_comparable<Member, internals::CompOp::eEqual>
 				)
 					return false;
 				if constexpr (I + 1 < ReflTraits::member_count)
-					return is_noexcept_op_comparable_loop<op, I + 1> ();
+					return is_noexcept_equal_comparable_loop<I + 1> ();
 				else
 					return true;
 			}
 
-			template <internals::CompOp op>
-			static constexpr bool is_noexcept_op_comparable_v = []() constexpr {
-				if constexpr (internals::noexcept_op_comparable<T, op>)
+
+		public:
+			static constexpr bool is_equal_comparable = []() consteval {
+				if constexpr (internals::op_comparable<T, internals::CompOp::eEqual>)
 					return true;
 				else {
-					return is_noexcept_op_comparable_loop<op> ();
+					return is_equal_comparable_loop<> ();
+				}
+			};
+			static constexpr bool is_noexcept_equal_comparable = []() consteval {
+				if constexpr (internals::noexcept_op_comparable<T, internals::CompOp::eEqual>)
+					return true;
+				else {
+					return is_noexcept_equal_comparable_loop<> ();
 				}
 			} ();
+			static constexpr bool is_three_way_comparable = false;
+			static constexpr bool is_noexcept_three_way_comparable = false;
+			static constexpr bool is_less_comparable = false;
+			static constexpr bool is_noexcept_less_comparable = false;
+			static constexpr bool is_less_or_equal_comparable = false;
+			static constexpr bool is_noexcept_less_or_equal_comparable = false;
+			static constexpr bool is_greater_comparable = false;
+			static constexpr bool is_noexcept_greater_comparable = false;
+			static constexpr bool is_greater_or_equal_comparable = false;
+			static constexpr bool is_noexcept_greater_or_equal_comparable = false;
 
-			template <internals::CompOp op>
-			static constexpr auto do_op_comparison(flex::forward_of<T> auto&& lhs, flex::forward_of<T> auto&& rhs)
-				noexcept (is_noexcept_op_comparable_v<op>)
-				requires (is_op_comparable_v<op>)
+
+			static constexpr auto equal(flex::forward_of<T> auto&& lhs, flex::forward_of<T> auto&& rhs)
+				noexcept (is_noexcept_equal_comparable)
+				-> bool
+				requires is_equal_comparable
 			{
-				if constexpr (internals::noexcept_op_comparable<T, op>
-					|| (internals::op_comparable<T, op> && !is_noexcept_op_comparable_v<op>)
-				) {
-					return internals::do_op_comparison<op> (
-						std::forward<decltype(lhs)> (lhs), std::forward<decltype(rhs)> (rhs)
-					);
-				}
+				if constexpr (internals::noexcept_op_comparable<T, internals::CompOp::eEqual>
+					|| (internals::op_comparable<T, internals::CompOp::eEqual>
+						&& !is_noexcept_equal_comparable
+					)
+				)
+					return std::forward<decltype(lhs)> (lhs) == std::forward<decltype(rhs)> (rhs);
 				else {
 					bool result {true};
 					flex::reflection::zipForeachMember([&result](const auto& lhs, const auto& rhs) constexpr -> bool {
@@ -381,75 +437,9 @@ namespace flex::reflection {
 					return result;
 				}
 			}
-
-
-		public:
-			static constexpr bool is_equal_comparable = is_op_comparable_v<internals::CompOp::eEqual>;
-			static constexpr bool is_noexcept_equal_comparable = is_noexcept_op_comparable_v<internals::CompOp::eEqual>;
-			static constexpr bool is_three_way_comparable = false;
-			static constexpr bool is_noexcept_three_way_comparable = false;
-			static constexpr bool is_less_comparable = is_op_comparable_v<internals::CompOp::eLess>;
-			static constexpr bool is_noexcept_less_comparable = is_noexcept_op_comparable_v<internals::CompOp::eLess>;
-			static constexpr bool is_less_or_equal_comparable = is_op_comparable_v<internals::CompOp::eLessOrEqual>;
-			static constexpr bool is_noexcept_less_or_equal_comparable
-				= is_noexcept_op_comparable_v<internals::CompOp::eLessOrEqual>;
-			static constexpr bool is_greater_comparable = is_op_comparable_v<internals::CompOp::eGreater>;
-			static constexpr bool is_noexcept_greater_comparable
-				= is_noexcept_op_comparable_v<internals::CompOp::eGreater>;
-			static constexpr bool is_greater_or_equal_comparable
-				= is_op_comparable_v<internals::CompOp::eGreaterOrEqual>;
-			static constexpr bool is_noexcept_greater_or_equal_comparable
-				= is_noexcept_op_comparable_v<internals::CompOp::eGreaterOrEqual>;
-
-
-			static constexpr auto equal(flex::forward_of<T> auto&& lhs, flex::forward_of<T> auto&& rhs)
-				noexcept (is_noexcept_equal_comparable)
-				-> bool
-				requires is_equal_comparable
-			{
-				return do_op_comparison<internals::CompOp::eEqual> (
-					std::forward<decltype(lhs)> (lhs), std::forward<decltype(rhs)> (rhs)
-				);
-			}
-
-			static constexpr auto less(flex::forward_of<T> auto&& lhs, flex::forward_of<T> auto&& rhs)
-				noexcept (is_noexcept_less_comparable)
-				-> bool
-				requires is_less_comparable
-			{
-				return do_op_comparison<internals::CompOp::eLess> (
-					std::forward<decltype(lhs)> (lhs), std::forward<decltype(rhs)> (rhs)
-				);
-			}
-
-			static constexpr auto less_or_equal(flex::forward_of<T> auto&& lhs, flex::forward_of<T> auto&& rhs)
-				noexcept (is_noexcept_less_or_equal_comparable)
-				-> bool
-				requires is_less_or_equal_comparable
-			{
-				return do_op_comparison<internals::CompOp::eLessOrEqual> (
-					std::forward<decltype(lhs)> (lhs), std::forward<decltype(rhs)> (rhs)
-				);
-			}
-
-			static constexpr auto greater(flex::forward_of<T> auto&& lhs, flex::forward_of<T> auto&& rhs)
-				noexcept (is_noexcept_greater_comparable)
-				-> bool
-				requires is_greater_comparable
-			{
-				return do_op_comparison<internals::CompOp::eGreater> (
-					std::forward<decltype(lhs)> (lhs), std::forward<decltype(rhs)> (rhs)
-				);
-			}
-
-			static constexpr auto greater_or_equal(flex::forward_of<T> auto&& lhs, flex::forward_of<T> auto&& rhs)
-				noexcept (is_noexcept_greater_or_equal_comparable)
-				-> bool
-				requires is_greater_or_equal_comparable
-			{
-				return do_op_comparison<internals::CompOp::eGreaterOrEqual> (
-					std::forward<decltype(lhs)> (lhs), std::forward<decltype(rhs)> (rhs)
-				);
-			}
 	};
+
+
+	template <typename T>
+	struct Comparator<flex::WriteOnly<T>>;
 }
