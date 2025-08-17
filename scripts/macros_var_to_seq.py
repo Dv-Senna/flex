@@ -9,6 +9,7 @@ output_path = sys.argv[1]
 amount = int(sys.argv[2])
 
 content = "#pragma once\n\n"
+content += "// NOLINTBEGIN(cppcoreguidelines-macro-usage)\n\n"
 
 for val in range(0, amount+1):
     args = ",".join([f"e{i}" for i in range(0, val+1)])
@@ -31,6 +32,8 @@ for val in range(1, amount+1):
     args = ",".join([f"e{i}" for i in range(0, val)])
     values = "".join([f"(e{i})" for i in range(0, val)])
     content += f"#define FLEX_MACROS_VAR_TO_SEQ_{val}({args}) {values}\n"
+
+content += "// NOLINTEND(cppcoreguidelines-macro-usage)"
 
 os.makedirs(os.path.dirname(output_path), exist_ok=True)
 with open(output_path, "w") as file:

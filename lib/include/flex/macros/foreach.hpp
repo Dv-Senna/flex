@@ -1,5 +1,6 @@
 #pragma once
 
+// NOLINTBEGIN(cppcoreguidelines-macro-usage)
 
 #define __FLEX_MACROS_RPARENTHESIS() )
 #define FLEX_MACROS_EMPTY
@@ -87,3 +88,4 @@
 #define FLEX_MACROS_SEQ_FOREACH_STEP(step, final, ctx, start, seq) FLEX_MACROS_SEQ_FOREACH(FLEX_MACROS_NULL, step, final, FLEX_MACROS_NULL, ctx, start, seq)
 #define FLEX_MACROS_SEQ_FOREACH_STEP_WITH_SEP(step, final, separator, ctx, start, seq) FLEX_MACROS_SEQ_FOREACH(FLEX_MACROS_NULL, step, final, separator, ctx, start, seq)
 
+// NOLINTEND(cppcoreguidelines-macro-usage)

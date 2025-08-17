@@ -41,10 +41,10 @@ namespace flex{
 
 
 	template <typename T>
-	concept reference = std::is_reference<T>::value;
+	concept reference = std::is_reference_v<T>;
 
 	template <typename T>
-	concept pointer = std::is_pointer<T>::value;
+	concept pointer = std::is_pointer_v<T>;
 
 	template <typename T>
 	concept value = !reference<T> && !pointer<T>;
@@ -60,7 +60,7 @@ namespace flex{
 
 
 	template <typename T>
-	concept cv_reference = reference<T> || std::is_const<T>::value || std::is_volatile<T>::value;
+	concept cv_reference = reference<T> || std::is_const_v<T>|| std::is_volatile_v<T>;
 
 	template <typename T>
 	concept no_cv_reference = !cv_reference<T>;
@@ -77,10 +77,10 @@ namespace flex{
 
 
 	template <typename T>
-	concept aggregate = std::is_aggregate<T>::value;
+	concept aggregate = std::is_aggregate_v<T>;
 
 	template <typename T>
-	concept class_aggregate = aggregate<T> && std::is_class<T>::value;
+	concept class_aggregate = aggregate<T> && std::is_class_v<T>;
 
 
 	template <typename T>
@@ -189,7 +189,7 @@ namespace flex{
 	};
 
 	template <typename T>
-	using member_pointer_extractor_t = typename member_pointer_extractor<typename std::remove_cvref<T>::type>::type;
+	using member_pointer_extractor_t = typename member_pointer_extractor<std::remove_cvref_t<T>>::type;
 
 
 	template <typename T>
@@ -203,11 +203,13 @@ namespace flex{
 	};
 
 	template <typename T>
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays, modernize-avoid-c-arrays)
 	struct remove_pointer_or_extent<T[]> {
 		using type = T;
 	};
 
 	template <typename T, std::size_t N>
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays, modernize-avoid-c-arrays)
 	struct remove_pointer_or_extent<T[N]> {
 		using type = T;
 	};
@@ -260,7 +262,7 @@ namespace flex{
 
 
 	template <typename T>
-	requires (std::is_function<T>::value)
+	requires (std::is_function_v<T>)
 	struct clean_function_signature;
 
 	template <typename Ret, typename ...Args>
@@ -316,12 +318,12 @@ namespace flex{
 
 	template <typename T>
 	using clean_function_signature_t = typename clean_function_signature<
-		typename std::remove_pointer<typename std::remove_cvref<T>::type>::type
+		std::remove_pointer_t<std::remove_cvref_t<T>>
 	>::type;
 
 
 	template <typename T, std::size_t I>
-	requires std::is_function<T>::value
+	requires std::is_function_v<T>
 	struct extract_signature_argument;
 
 	template <typename Ret, std::size_t I, typename ...Args>
@@ -334,7 +336,7 @@ namespace flex{
 
 
 	template <typename T>
-	requires std::is_function<T>::value
+	requires std::is_function_v<T>
 	struct extract_signature_return;
 
 	template <typename Ret, typename ...Args>
@@ -401,8 +403,8 @@ namespace flex{
 
 	template <typename Forward, typename T>
 	concept forward_of = std::same_as<
-		typename std::remove_cvref<Forward>::type,
-		typename std::remove_cvref<T>::type
+		std::remove_cvref_t<Forward>,
+		std::remove_cvref_t<T>
 	>;
 
 	template <typename Variant, typename Type>

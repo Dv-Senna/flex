@@ -9,6 +9,8 @@ output_path = sys.argv[1]
 amount = int(sys.argv[2])
 
 content = "#pragma once\n\n"
+content += "// NOLINTBEGIN(cppcoreguidelines-macro-usage)\n\n"
+
 
 for level in range(2, amount+1):
     content += f"#define FLEX_MACROS_IOTA_FOR{level}(size, body, step, final, separator, ctx, start) "
@@ -35,6 +37,7 @@ for level in range(2, amount+1):
     content += "\n"
     content += "\n"
 
+content += "// NOLINTEND(cppcoreguidelines-macro-usage)"
 
 os.makedirs(os.path.dirname(output_path), exist_ok=True)
 with open(output_path, "w") as file:

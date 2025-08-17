@@ -48,6 +48,7 @@ namespace flex::reflection::aggregate {
 		constexpr auto memberCount {member_count<T>::value};
 		if constexpr (memberCount == 0)
 			return std::tuple<> {};
+// NOLINTBEGIN(cppcoreguidelines-macro-usage)
 	#define FLEX_REFLECTION_AGGREGATE_GET_MEMBER_TIE_PACK_BODY(ctx, step_ctx, ...) e##__VA_ARGS__
 	#define FLEX_REFLECTION_AGGREGATE_GET_MEMBER_TIE_PACK(size) FLEX_MACROS_IOTA_FOR_BODY_WITH_SEP2( \
 		FLEX_MACROS_INCREMENT(size), FLEX_REFLECTION_AGGREGATE_GET_MEMBER_TIE_PACK_BODY, FLEX_MACROS_COMMA, \
@@ -57,6 +58,7 @@ namespace flex::reflection::aggregate {
 			auto& [FLEX_REFLECTION_AGGREGATE_GET_MEMBER_TIE_PACK(__VA_ARGS__)] {instance}; \
 			return std::tie(FLEX_REFLECTION_AGGREGATE_GET_MEMBER_TIE_PACK(__VA_ARGS__)); \
 		}
+// NOLINTEND(cppcoreguidelines-macro-usage)
 
 		FLEX_MACROS_IOTA_FOR_BODY(FLEX_REFLECTION_MAX_MEMBERS_COUNT,
 			FLEX_REFLECTION_AGGREGATE_GET_MEMBER_TIE_BODY,

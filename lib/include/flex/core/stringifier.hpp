@@ -7,6 +7,7 @@
 #include <ranges>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -71,8 +72,10 @@ namespace flex {
 			std::vector<char> buffer {};
 			std::errc err {};
 			char *ptr {nullptr};
+		// NOLINTNEXTLINE(cppcoreguidelines-avoid-do-while)
 			do {
 				buffer.resize(buffer.size() + chunkSize);
+			// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 				const auto [_ptr, _err] {std::to_chars(buffer.data(), buffer.data() + buffer.size(), value)};
 				err = _err;
 				ptr = _ptr;
@@ -92,7 +95,7 @@ namespace flex {
 	template <flex::string T>
 	struct Stringifier<T> {
 		constexpr auto operator()(flex::forward_of<T> auto&& value) const noexcept {
-			return std::forward<decltype(value)> (value);
+			return static_cast<std::decay_t<decltype(value)>> (std::forward<decltype(value)> (value));
 		}
 	};
 
@@ -178,6 +181,7 @@ namespace flex {
 	static_assert(nonfailable_stringifyable<bool>);
 	static_assert(nonfailable_stringifyable<char*>);
 	static_assert(nonfailable_stringifyable<const char*>);
+// ENOLINTNEXTLINE
 	static_assert(nonfailable_stringifyable<const char(&)[12]>);
 	static_assert(nonfailable_stringifyable<std::string_view>);
 	static_assert(nonfailable_stringifyable<std::string>);

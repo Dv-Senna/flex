@@ -13,7 +13,6 @@
 #include <tuple>
 #include <type_traits>
 #include <utility>
-#include <vector>
 
 #include "flex/containers/contiguousIterator.hpp"
 
@@ -134,23 +133,40 @@ namespace flex::containers {
 				return *this;
 			}
 
+			[[nodiscard]]
 			constexpr auto begin() noexcept {return iterator{&this->at(0)};}
+			[[nodiscard]]
+			// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 			constexpr auto end() noexcept {return iterator{&this->at(0) + m_size};}
+			[[nodiscard]]
 			constexpr auto begin() const noexcept -> const_iterator {return this->cbegin();}
+			[[nodiscard]]
 			constexpr auto end() const noexcept -> const_iterator {return this->cend();}
+			[[nodiscard]]
 			constexpr auto cbegin() const noexcept {return const_iterator{&this->at(0)};}
+			[[nodiscard]]
+			// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 			constexpr auto cend() const noexcept {return const_iterator{&this->at(0) + m_size};}
 
+			[[nodiscard]]
+			// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 			constexpr auto rbegin() noexcept {return reverse_iterator{iterator{&this->at(0) + m_size}};}
+			[[nodiscard]]
 			constexpr auto rend() noexcept {return reverse_iterator{iterator{&this->at(0)}};}
+			[[nodiscard]]
 			constexpr auto rbegin() const noexcept -> const_reverse_iterator {return this->crbegin();}
+			[[nodiscard]]
 			constexpr auto rend() const noexcept -> const_reverse_iterator {return this->crend();}
+			[[nodiscard]]
 			constexpr auto crbegin() const noexcept {
 				return const_reverse_iterator{const_iterator{&this->at(0) + m_size}};
 			}
+			[[nodiscard]]
 			constexpr auto crend() const noexcept {return const_reverse_iterator{const_iterator{&this->at(0)}};}
 
+			[[nodiscard]]
 			constexpr auto size() const noexcept -> size_type {return m_size;}
+			[[nodiscard]]
 			constexpr auto empty() const noexcept -> bool {return m_size == 0;}
 
 
@@ -332,24 +348,30 @@ namespace flex::containers {
 			static constexpr auto useTrivialImplementation = std::is_trivially_constructible_v<T>
 				|| forceTrivialBehaviour;
 
+			[[nodiscard]]
 			constexpr auto atAsPointer(size_type index) noexcept -> pointer {
 				if constexpr (useTrivialImplementation)
-					return m_storage + index;
+			// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+					return static_cast<pointer> (m_storage) + index;
 				else
 					return &m_storage[0].data + index;
 			}
 
+			[[nodiscard]]
 			constexpr auto atAsPointer(size_type index) const noexcept -> const_pointer {
 				if constexpr (useTrivialImplementation)
-					return m_storage + index;
+			// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+					return static_cast<const_pointer> (m_storage) + index;
 				else
 					return &m_storage[0].data + index;
 			}
 
+			[[nodiscard]]
 			constexpr auto at(size_type index) noexcept -> reference {
 				return *this->atAsPointer(index);
 			}
 
+			[[nodiscard]]
 			constexpr auto at(size_type index) const noexcept -> const_reference {
 				return *this->atAsPointer(index);
 			}
@@ -375,46 +397,49 @@ namespace flex::containers {
 				m_size = size;
 			}
 
+			[[nodiscard]]
 			constexpr auto isIteratorValid(const_iterator it) const noexcept -> bool {
 				return it - this->cbegin() >= 0
 					&& static_cast<std::uintmax_t> (it - this->cbegin()) <= static_cast<std::uintmax_t> (m_size);
 			}
 
+		// NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
 			union Storage {
 				T data;
 				constexpr Storage() noexcept {}
 				constexpr ~Storage() {}
 			};
+		// NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays, modernize-avoid-c-arrays)
 			std::conditional_t<useTrivialImplementation, T, Storage> m_storage[capacity];
 			size_type m_size;
 	};
 
 	namespace internals {
 		template <typename ...Args>
-		using make_inplace_vector_value_type_t = typename std::remove_cvref<
-			typename std::tuple_element<0, std::tuple<Args...>>::type
-		>::type;
+		using make_inplace_vector_value_type_t = std::remove_cvref_t<
+			std::tuple_element_t<0, std::tuple<Args...>>
+		>;
 
 		template <typename ...Args>
-		static constexpr auto make_inplace_vector_noexcept_v = (std::is_nothrow_constructible<
+		static constexpr auto make_inplace_vector_noexcept_v = (std::is_nothrow_constructible_v<
 			make_inplace_vector_value_type_t<Args...>,
 			decltype(std::forward<Args> (std::declval<Args> ()))
-		>::value && ...);
+		> && ...);
 
 		template <std::size_t capacity, typename ...Args>
 		static constexpr auto is_make_inplace_vector_v = sizeof...(Args) > 0
 			&& sizeof...(Args) <= capacity
-			&& (std::is_constructible<
+			&& (std::is_constructible_v<
 				make_inplace_vector_value_type_t<Args...>,
 				decltype(std::forward<Args> (std::declval<Args> ()))
-			>::value && ...)
+			> && ...)
 			&& (
-				std::is_move_constructible<
+				std::is_move_constructible_v<
 					InplaceVector<internals::make_inplace_vector_value_type_t<Args...>, capacity>
-				>::value
-				|| std::is_copy_constructible<
+				>
+				|| std::is_copy_constructible_v<
 					InplaceVector<internals::make_inplace_vector_value_type_t<Args...>, capacity>
-				>::value
+				>
 			);
 	}
 
@@ -437,5 +462,6 @@ namespace flex::containers {
 	}
 
 
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
 	static_assert(std::ranges::contiguous_range<InplaceVector<int, 16>>);
 }

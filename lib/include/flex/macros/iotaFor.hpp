@@ -1,5 +1,6 @@
 #pragma once
 
+// NOLINTBEGIN(cppcoreguidelines-macro-usage)
 
 #define FLEX_MACROS_IOTA_FOR(size, body, step, final, separator, ctx, start) \
 	FLEX_MACROS_GUIDE_FOREACH(body, step, final, separator, ctx, start, FLEX_MACROS_MAKE_INT_GUIDE(size))
@@ -13,3 +14,4 @@
 #define FLEX_MACROS_IOTA_FOR_STEP_WITH_SEP(size, step, final, separator, ctx, start) \
 	FLEX_MACROS_IOTA_FOR(size, FLEX_MACROS_NULL, step, final, seperator, ctx, start)
 
+// NOLINTEND(cppcoreguidelines-macro-usage)

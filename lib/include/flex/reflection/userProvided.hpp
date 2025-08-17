@@ -23,13 +23,13 @@ namespace flex::reflection::userProvided {
 		template <
 			flex::tuple T,
 			std::size_t I = 0,
-			std::size_t N = std::tuple_size<T>::value
+			std::size_t N = std::tuple_size_v<T>
 		>
 		struct is_metadata_rename_valid : std::bool_constant<
 			flex::tuple<std::tuple_element_t<I, T>>
 			&& std::tuple_size<std::tuple_element_t<I, T>>::value == 2
 			&& flex::string<typename std::tuple_element<0, std::tuple_element_t<I, T>>::type>
-			&& std::is_member_object_pointer<typename std::tuple_element<1, std::tuple_element_t<I, T>>::type>::value
+			&& std::is_member_object_pointer_v<std::tuple_element_t<1, std::tuple_element_t<I, T>>>
 			&& is_metadata_rename_valid<T, I + 1, N>::value
 		> {};
 
@@ -43,7 +43,7 @@ namespace flex::reflection::userProvided {
 			std::size_t N = std::tuple_size<T>::value
 		>
 		struct is_metadata_remove_valid : std::bool_constant<
-			std::is_member_object_pointer<std::tuple_element_t<I, T>>::value
+			std::is_member_object_pointer_v<std::tuple_element_t<I, T>>
 			&& is_metadata_remove_valid<T, I + 1, N>::value
 		> {};
 
@@ -55,36 +55,36 @@ namespace flex::reflection::userProvided {
 		struct is_getter;// : std::false_type {};
 
 		template <typename S, typename T>
-		requires (!std::is_void<T>::value)
+		requires (!std::is_void_v<T>)
 		struct is_getter<T (S::*)() const> : std::true_type {};
 
 		template <typename S, typename T>
-		requires (!std::is_void<T>::value)
+		requires (!std::is_void_v<T>)
 		struct is_getter<T (S::*)() const noexcept> : std::true_type {};
 
 		template <>
 		struct is_getter<std::nullptr_t> : std::true_type {};
 
 		template <typename T>
-		concept getter = is_getter<typename std::remove_cvref<T>::type>::value;
+		concept getter = is_getter<std::remove_cvref_t<T>>::value;
 
 
 		template <typename T>
 		struct is_setter;// : std::false_type {};
 
 		template <typename S, typename T>
-		requires (!std::is_void<T>::value)
+		requires (!std::is_void_v<T>)
 		struct is_setter<void (S::*)(T)> : std::true_type {};
 
 		template <typename S, typename T>
-		requires (!std::is_void<T>::value)
+		requires (!std::is_void_v<T>)
 		struct is_setter<void (S::*)(T) noexcept> : std::true_type {};
 
 		template <>
 		struct is_setter<std::nullptr_t> : std::true_type {};
 
 		template <typename T>
-		concept setter = is_setter<typename std::remove_cvref<T>::type>::value;
+		concept setter = is_setter<std::remove_cvref_t<T>>::value;
 
 
 		template <typename Getter, typename Setter>
@@ -177,10 +177,10 @@ namespace flex::reflection::userProvided {
 		template <typename S, internals::getter auto getter = nullptr, internals::setter auto setter = nullptr>
 		class MemberWrapper {
 			using This = MemberWrapper<S, getter, setter>;
-			using Getter = typename std::conditional<getter != nullptr,
+			using Getter = std::conditional_t<getter != nullptr,
 				decltype(getter),
 				int()
-			>::type;
+			>;
 			public:
 				using getter_value_type = flex::extract_signature_return_t<flex::member_pointer_extractor_t<Getter>>;
 				MemberWrapper() = delete;
@@ -190,12 +190,15 @@ namespace flex::reflection::userProvided {
 
 				constexpr MemberWrapper(S& instance) noexcept : m_instance {&instance} {}
 				constexpr MemberWrapper(This&&) noexcept = default;
+				constexpr ~MemberWrapper() = default;
 
-				constexpr auto operator=(auto&& value) const
+				constexpr auto operator=(auto&& value)
 					noexcept(noexcept((m_instance->*setter)(std::declval<decltype(value)> ())))
+					-> MemberWrapper&
 					requires (setter != nullptr)
 				{
 					(m_instance->*setter)(value);
+					return *this;
 				}
 
 				constexpr operator std::add_lvalue_reference_t<getter_value_type> () const
@@ -215,21 +218,21 @@ namespace flex::reflection::userProvided {
 
 				constexpr auto operator->() const
 					noexcept(noexcept((m_instance->*getter)()))
-					-> typename std::add_pointer<getter_value_type>::type
+					-> std::add_pointer_t<getter_value_type>
 					requires (getter != nullptr)
 				{
 					struct PointerWrapper {
 						getter_value_type result;
 						constexpr auto operator->() noexcept -> getter_value_type& {return result;}
 					};
-					if constexpr (std::is_reference<getter_value_type>::value)
+					if constexpr (std::is_reference_v<getter_value_type>)
 						return &(m_instance->*getter)();
 					else
 						return PointerWrapper{(m_instance->*getter)()};
 				}
 
 			private:
-				typename std::add_pointer<S>::type m_instance;
+				std::add_pointer_t<S> m_instance;
 		};
 
 
@@ -346,13 +349,13 @@ namespace flex::reflection::userProvided {
 			std::size_t I = 0,
 			std::size_t N = flex::reflection::aggregate::member_count<T>::value
 		>
-		struct get_processed_aggregate_member_types : flex::type_constant<typename flex::merge_tuple<
-			typename std::conditional<internals::removeMember<T, I> (),
+		struct get_processed_aggregate_member_types : flex::type_constant<flex::merge_tuple_t<
+			std::conditional_t<internals::removeMember<T, I> (),
 				std::tuple<>,
-				std::tuple<typename std::tuple_element<I, flex::reflection::aggregate::get_member_types_t<T>>::type>
-			>::type,
+				std::tuple<std::tuple_element_t<I, flex::reflection::aggregate::get_member_types_t<T>>>
+			>,
 			typename get_processed_aggregate_member_types<T, I + 1, N>::type
-		>::type> {};
+		>> {};
 
 		template <typename T, std::size_t N>
 		struct get_processed_aggregate_member_types<T, N, N> : flex::type_constant<std::tuple<>> {};
@@ -376,51 +379,51 @@ namespace flex::reflection::userProvided {
 
 		template <typename T>
 		struct get_new_member_type<T, 2,
-			typename std::enable_if<getter<typename std::tuple_element<1, T>::type>, void>::type
+			std::enable_if_t<getter<std::tuple_element_t<1, T>>, void>
 		> : flex::type_constant<
-			typename std::add_const<typename std::remove_reference<
+			std::add_const_t<std::remove_reference_t<
 				flex::extract_signature_return_t<flex::member_pointer_extractor_t<
-					typename std::tuple_element<1, T>::type
+					std::tuple_element_t<1, T>
 				>>
-			>::type>::type
+			>>
 		> {};
 
 		template <typename T>
 		struct get_new_member_type<T, 2,
-			typename std::enable_if<setter<typename std::tuple_element<1, T>::type>, void>::type
+			std::enable_if_t<setter<std::tuple_element_t<1, T>>, void>
 		> : flex::type_constant<
-			flex::WriteOnly<typename std::remove_cvref<
+			flex::WriteOnly<std::remove_cvref_t<
 				flex::extract_signature_argument_t<flex::member_pointer_extractor_t<
-					typename std::tuple_element<1, T>::type
+					std::tuple_element_t<1, T>
 				>, 0>
-			>::type>
+			>>
 		> {};
 
 		template <typename T>
 		struct get_new_member_type<T, 3> : flex::type_constant<
-			typename std::remove_cvref<
+			std::remove_cvref_t<
 				flex::extract_signature_return_t<flex::member_pointer_extractor_t<
-					typename std::conditional<getter<typename std::tuple_element<1, T>::type>,
-						typename std::tuple_element<1, T>::type,
-						typename std::tuple_element<2, T>::type
-					>::type
+					std::conditional_t<getter<std::tuple_element_t<1, T>>,
+						std::tuple_element_t<1, T>,
+						std::tuple_element_t<2, T>
+					>
 				>>
-			>::type
+			>
 		> {};
 
 
 		template <
 			has_valid_metadata T,
 			std::size_t I = 0,
-			std::size_t N = std::tuple_size<decltype(T::FlexMetadata::new_member)>::value
+			std::size_t N = std::tuple_size_v<decltype(T::FlexMetadata::new_member)>
 		>
 		struct get_new_member_types : flex::type_constant<
-			typename flex::merge_tuple<
+			flex::merge_tuple_t<
 				std::tuple<typename get_new_member_type<
-					typename std::tuple_element<I, decltype(T::FlexMetadata::new_member)>::type
+					std::tuple_element_t<I, decltype(T::FlexMetadata::new_member)>
 				>::type>,
 				typename get_new_member_types<T, I + 1, N>::type
-			>::type
+			>
 		> {};
 
 		template <typename T, std::size_t N>
@@ -468,8 +471,8 @@ namespace flex::reflection::userProvided {
 			} ()};
 
 			constexpr std::tuple field {std::get<NewI> (T::FlexMetadata::new_member)};
-			using Field = typename std::remove_cvref<decltype(field)>::type;
-			constexpr std::size_t fieldSize {std::tuple_size<Field>::value};
+			using Field = std::remove_cvref_t<decltype(field)>;
+			constexpr std::size_t fieldSize {std::tuple_size_v<Field>};
 			if constexpr (fieldSize == 3) {
 				if constexpr (internals::getter<decltype(std::get<1> (field))>)
 					return internals::MemberWrapper<T, std::get<1> (field), std::get<2> (field)> {instance};
