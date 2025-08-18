@@ -7,196 +7,329 @@
 	#include <expected>
 #endif
 
+#include "flex/core/typeTraits.hpp"
+
 
 namespace flex {
-	namespace __internals {
+	namespace internals {
 		template <typename T>
-		concept autogen_error_type = requires(T v, const T cv) {
-			typename T::ValueType;
-			{*v} -> std::same_as<std::add_lvalue_reference_t<typename T::ValueType>>;
-			{*cv} -> std::same_as<std::add_lvalue_reference_t<std::add_const_t<typename T::ValueType>>>;
-			{v.operator->()} -> std::same_as<std::add_pointer_t<typename T::ValueType>>;
-			{cv.operator->()} -> std::same_as<std::add_pointer_t<std::add_const_t<typename T::ValueType>>>;
-			{!cv} -> std::same_as<bool>;
-		} && std::movable<T>;
+		concept autogen_error_type = requires(const T cv) {
+			typename T::value_type;
+			{*cv} -> flex::similar_to<typename T::value_type>;
+			{!cv} -> flex::similar_to<bool>;
+		}
+			&& std::movable<T>
+			&& std::is_default_constructible_v<std::remove_cvref_t<T>>
+			&& std::same_as<T, std::remove_cvref_t<T>>;
 
 
 		template <typename T>
-		concept autogen_error_type_with_error = requires(T v, const T cv) {
-			typename T::ErrorType;
-			{v.getError()} -> std::same_as<std::add_lvalue_reference_t<typename T::ErrorType>>;
-			{cv.getError()} -> std::same_as<std::add_lvalue_reference_t<std::add_const_t<typename T::ErrorType>>>;
-		} && autogen_error_type<T>;
+		concept autogen_error_type_with_error = requires(const T cv) {
+			typename T::error_type;
+			{cv.error()} -> flex::similar_to<typename T::error_type>;
+		}
+			&& autogen_error_type<T>;
 
-	} // namespace __internals
-
-
-	template <typename T>
-	struct error_type_traits {
-		static constexpr bool IS_ERROR_TYPE {false};
-		using Type = T;
-		using ValueType = void;
-		using ErrorType = void;
-
-		static constexpr auto hasValue(const Type&) noexcept -> bool;
-		static constexpr auto getValue(Type&) noexcept;
-		static constexpr auto getValue(const Type&) noexcept;
-		template <typename U>
-		static constexpr auto getValueOr(Type&&, U&&) noexcept;
-		template <typename U>
-		static constexpr auto getValueOr(const Type&, U&&) noexcept;
-
-		static constexpr auto getError(Type&) noexcept;
-		static constexpr auto getError(const Type&) noexcept;
-		template <typename G>
-		static constexpr auto getErrorOr(Type&&, G&&) noexcept;
-		template <typename G>
-		static constexpr auto getErrorOr(const Type&, G&&) noexcept;
-	};
+	}
 
 
 	template <typename T>
-	struct error_type_traits<std::optional<T>> {
-		static constexpr bool IS_ERROR_TYPE {true};
-		using Type = std::optional<T>;
-		using ValueType = T;
-		using ErrorType = void;
+	requires std::same_as<T, std::remove_cvref_t<T>>
+	struct error_type_traits;
 
-		[[nodiscard]]
-		static constexpr auto hasValue(const Type &instance) noexcept -> bool {return !!instance;}
-		[[nodiscard]]
-		static constexpr auto getValue(Type &instance) noexcept -> ValueType& {return *instance;}
-		[[nodiscard]]
-		static constexpr auto getValue(const Type &instance) noexcept -> const ValueType& {return *instance;}
+	namespace internals {
+		template <typename Traits>
+		concept valid_error_type_traits = requires(std::add_const_t<typename Traits::type> cv) {
+				typename Traits::type;
+				typename Traits::value_type;
+				typename Traits::error_type;
 
-		template <typename U = std::remove_cvref_t<T>>
-		[[nodiscard]]
-		static constexpr auto getValueOr(Type &&instance, U &&defaultValue) noexcept -> ValueType {return instance.value_or(std::forward<U> (defaultValue));}
-		template <typename U = std::remove_cvref_t<T>>
-		[[nodiscard]]
-		static constexpr auto getValueOr(const Type &instance, U &&defaultValue) noexcept -> ValueType {return instance.value_or(std::forward<U> (defaultValue));}
-	};
+				{Traits::hasValue(cv)} -> flex::similar_to<bool>;
+				noexcept(Traits::hasValue(cv));
+		}
+			&& (
+				std::is_void_v<typename Traits::value_type>
+				|| requires(std::add_const_t<typename Traits::type> cv)
+			{
+				{Traits::getValue(cv)} -> flex::similar_to<typename Traits::value_type>;
+				noexcept(Traits::getValue(cv));
+			}
+		);
 
+		template <typename Traits>
+		concept valid_error_type_traits_without_error = valid_error_type_traits<Traits>
+			&& std::is_void_v<typename Traits::error_type>
+			&& !std::is_void_v<typename Traits::value_type>;
 
-#if defined(__cpp_lib_expected) && __cpp_lib_expected >= 202202L
-	template <typename T, typename E>
-	struct error_type_traits<std::expected<T, E>> {
-		static constexpr bool IS_ERROR_TYPE {true};
-		using Type = std::expected<T, E>;
-		using ValueType = T;
-		using ErrorType = E;
+		template <typename Traits>
+		concept valid_error_type_traits_with_error = internals::valid_error_type_traits<Traits>
+			&& !std::is_void_v<typename Traits::error_type>
+			&& requires(std::add_const_t<typename Traits::type> cv)
+		{
+			{Traits::getError(cv)} -> flex::similar_to<typename Traits::error_type>;
+		};
 
-		[[nodiscard]]
-		static constexpr auto hasValue(const Type &instance) noexcept -> bool {return !!instance;}
-		[[nodiscard]]
- 		static constexpr auto getValue(Type &instance) noexcept -> ValueType& {return *instance;}
-		[[nodiscard]]
-		static constexpr auto getValue(const Type &instance) noexcept -> const ValueType& {return *instance;}
-
-		template <typename U = std::remove_cvref_t<T>>
-		[[nodiscard]]
-		static constexpr auto getValueOr(Type &&instance, U &&defaultValue) noexcept -> ValueType {return instance.value_or(std::forward<U> (defaultValue));}
-		template <typename U = std::remove_cvref_t<T>>
-		[[nodiscard]]
-		static constexpr auto getValueOr(const Type &instance, U &&defaultValue) noexcept -> ValueType {return instance.value_or(std::forward<U> (defaultValue));}
-
-		[[nodiscard]]
-		static constexpr auto getError(Type &instance) noexcept -> ValueType& {return instance.error();}
-		[[nodiscard]]
-		static constexpr auto getError(const Type &instance) noexcept -> const ValueType& {return instance.error();}
-
-		template <typename G = std::remove_cvref_t<T>>
-		[[nodiscard]]
-		static constexpr auto getErrorOr(Type &&instance, G &&defaultValue) noexcept -> ErrorType {return instance.error_or(std::forward<G> (defaultValue));}
-		template <typename G = std::remove_cvref_t<T>>
-		[[nodiscard]]
-		static constexpr auto getErrorOr(const Type &instance, G &&defaultValue) noexcept -> ErrorType {return instance.error_or(std::forward<G> (defaultValue));}
-	};
-#endif
-
-
-	template <__internals::autogen_error_type T>
-	struct error_type_traits<T> {
-		static constexpr bool IS_ERROR_TYPE {true};
-		using Type = T;
-		using ValueType = T::ValueType;
-		using ErrorType = void;
-
-		[[nodiscard]]
-		static constexpr auto hasValue(const Type &instance) noexcept -> bool {return !!instance;}
-		[[nodiscard]]
-		static constexpr auto getValue(Type &instance) noexcept -> ValueType& {return *instance;}
-		[[nodiscard]]
-		static constexpr auto getValue(const Type &instance) noexcept -> const ValueType& {return *instance;}
-
-		template <typename U = std::remove_cvref_t<T>>
-		[[nodiscard]]
-		static constexpr auto getValueOr(Type &&instance, U &&defaultValue) noexcept -> ValueType {return !instance ? defaultValue : *instance;}
-		template <typename U = std::remove_cvref_t<T>>
-		[[nodiscard]]
-		static constexpr auto getValueOr(const Type &instance, U &&defaultValue) noexcept -> ValueType {return !instance ? defaultValue : *instance;}
-	};
-
-
-	template <__internals::autogen_error_type_with_error T>
-	struct error_type_traits<T> {
-		static constexpr bool IS_ERROR_TYPE {true};
-		using Type = T;
-		using ValueType = T::ValueType;
-		using ErrorType = T::ErrorType;
-
-		[[nodiscard]]
-		static constexpr auto hasValue(const Type &instance) noexcept -> bool {return !!instance;}
-		[[nodiscard]]
-		static constexpr auto getValue(Type &instance) noexcept -> ValueType& {return *instance;}
-		[[nodiscard]]
-		static constexpr auto getValue(const Type &instance) noexcept -> const ValueType& {return *instance;}
-
-		template <typename U = std::remove_cvref_t<T>>
-		[[nodiscard]]
-		static constexpr auto getValueOr(Type &&instance, U &&defaultValue) noexcept -> ValueType {return !instance ? defaultValue : *instance;}
-		template <typename U = std::remove_cvref_t<T>>
-		[[nodiscard]]
-		static constexpr auto getValueOr(const Type &instance, U &&defaultValue) noexcept -> ValueType {return !instance ? defaultValue : *instance;}
-
-		[[nodiscard]]
-		static constexpr auto getError(Type &instance) noexcept -> ValueType& {return instance.error();}
-		[[nodiscard]]
-		static constexpr auto getError(const Type &instance) noexcept -> const ValueType& {return instance.error();}
-
-		template <typename G = std::remove_cvref_t<T>>
-		[[nodiscard]]
-		static constexpr auto getErrorOr(Type &&instance, G &&defaultValue) noexcept -> ErrorType {return !instance ? instance.getError() : defaultValue;}
-		template <typename G = std::remove_cvref_t<T>>
-		[[nodiscard]]
-		static constexpr auto getErrorOr(const Type &instance, G &&defaultValue) noexcept -> ErrorType {return !instance ? instance.getError() : defaultValue;}
-	};
-
+	}
 
 	template <typename T>
-	constexpr auto is_error_type_v = error_type_traits<T>::IS_ERROR_TYPE;
+	concept error_type_without_error = internals::valid_error_type_traits_without_error<
+		error_type_traits<std::remove_cvref_t<T>>
+	>;
 
 	template <typename T>
-	concept error_type = is_error_type_v<T>;
+	concept error_type_with_error = internals::valid_error_type_traits_with_error<
+		error_type_traits<std::remove_cvref_t<T>>
+	>;
+
+	template <typename T>
+	concept error_type = error_type_without_error<T> || error_type_with_error<T>;
+
+	template <typename T>
+	concept error_type_with_value = error_type<T> && !std::is_void_v<
+		typename error_type_traits<std::remove_cvref_t<T>>::value_type
+	>;
+
+	template <typename T>
+	concept error_type_without_value = error_type<T> && !error_type_with_value<T>;
 
 
 	template <error_type T>
-	constexpr auto is_error_type_with_error_v = !std::is_void_v<typename error_type_traits<T>::ErrorType>;
-
-	template <typename T>
-	concept error_type_with_error = error_type<T> && is_error_type_with_error_v<T>;
-
-	template <error_type T>
-	constexpr auto is_error_type_without_error_v = std::is_void_v<typename error_type_traits<T>::ErrorType>;
-
-	template <typename T>
-	concept error_type_without_error = error_type<T> && is_error_type_without_error_v<T>;
-
-
-	template <error_type T>
-	using error_type_value_t = typename error_type_traits<T>::ValueType;
+	using error_type_value_t = typename error_type_traits<T>::value_type;
 
 	template <error_type_with_error T>
-	using error_type_error_t = typename error_type_traits<T>::ErrorType;
+	using error_type_error_t = typename error_type_traits<T>::error_type;
 
-} // namespace flex
+
+	template <internals::autogen_error_type T>
+	struct error_type_traits<T> {
+		using type = T;
+		using value_type = typename T::value_type;
+		using error_type = void;
+
+		[[nodiscard]]
+		static constexpr auto hasValue(flex::forward_of<type> auto&& instance) noexcept -> bool {
+			return !!std::forward<decltype(instance)> (instance);
+		}
+		[[nodiscard]]
+		static constexpr auto getValue(flex::forward_of<type> auto&& instance) noexcept
+			-> std::conditional_t<std::is_lvalue_reference_v<decltype(instance)>,
+				std::add_lvalue_reference_t<value_type>, std::add_rvalue_reference_t<value_type>
+			>
+			requires (!std::is_void_v<value_type>)
+		{
+			return *std::forward<decltype(instance)> (instance);
+		}
+
+		[[nodiscard]]
+		static constexpr auto getValueOr(
+			flex::forward_of<type> auto&& instance,
+			flex::forward_of<value_type> auto&& defaultValue
+		) noexcept -> value_type requires (!std::is_void_v<value_type>) {
+			if constexpr (requires {std::forward<decltype(instance)> (instance)
+				.value_or(std::forward<decltype(defaultValue)> (defaultValue));
+			}) {
+				return std::forward<decltype(instance)> (instance)
+					.value_or(std::forward<decltype(defaultValue)> (defaultValue));
+			}
+			else {
+				return !std::forward<decltype(instance)>
+					? std::forward<decltype(defaultValue)>
+					: *std::forward<decltype(instance)> (instance);
+			}
+		}
+
+		[[nodiscard]]
+		static constexpr auto andThen(flex::forward_of<type> auto&& instance, auto&& func)
+			noexcept(noexcept(std::forward<decltype(func)> (func)(*std::forward<decltype(instance)> (instance))))
+			requires (!std::is_void_v<value_type>)
+		{
+			if constexpr (requires {std::forward<decltype(instance)> (instance)
+				.and_then(std::forward<decltype(func)> (func));
+			}) {
+				return std::forward<decltype(instance)> (instance)
+					.and_then(std::forward<decltype(func)> (func));
+			}
+			else {
+				using Ret = decltype(std::forward<decltype(func)> (func)(
+					*std::forward<decltype (instance)> (instance)
+				));
+				if (!!std::forward<decltype(instance)>)
+					return std::forward<decltype(func)> (func)(*std::forward<decltype (instance)> (instance));
+				else
+					return std::remove_cvref_t<Ret> {};
+			}
+		}
+
+		[[nodiscard]]
+		static constexpr auto transform(flex::forward_of<type> auto&& instance, auto&& func)
+			noexcept(noexcept(std::forward<decltype(func)> (func)(*std::forward<decltype(instance)> (instance))))
+			requires (!std::is_void_v<value_type>)
+		{
+			if constexpr (requires {std::forward<decltype(instance)> (instance)
+				.transform(std::forward<decltype(func)> (func));
+			}) {
+				return std::forward<decltype(instance)> (instance)
+					.transform(std::forward<decltype(func)> (func));
+			}
+			else {
+				using Ret = decltype(type{std::forward<decltype(func)> (func)(
+					*std::forward<decltype (instance)> (instance)
+				)});
+				if (!!std::forward<decltype(instance)>)
+					return type{std::forward<decltype(func)> (func)(*std::forward<decltype (instance)> (instance))};
+				else
+					return std::remove_cvref_t<Ret> {};
+			}
+		}
+
+		[[nodiscard]]
+		static constexpr auto or_else(flex::forward_of<type> auto&& instance, auto&& func)
+			noexcept(noexcept(std::forward<decltype(func)> (func)()))
+			requires (!std::is_void_v<value_type>)
+		{
+			if constexpr (requires {std::forward<decltype(instance)> (instance)
+				.or_else(std::forward<decltype(func)> (func));
+			}) {
+				return std::forward<decltype(instance)> (instance)
+					.or_else(std::forward<decltype(func)> (func));
+			}
+			else {
+				return !std::forward<decltype(instance)> (instance)
+					? std::forward<func> (func)()
+					: *std::forward<decltype(instance)> (instance);
+			}
+		}
+	};
+
+
+	template <internals::autogen_error_type_with_error T>
+	struct error_type_traits<T> {
+		using type = T;
+		using value_type = typename T::value_type;
+		using error_type = typename T::error_type;
+
+		[[nodiscard]]
+		static constexpr auto hasValue(flex::forward_of<type> auto&& instance) noexcept -> bool {
+			return !!std::forward<decltype(instance)> (instance);
+		}
+		[[nodiscard]]
+		static constexpr auto getValue(flex::forward_of<type> auto&& instance) noexcept
+			-> std::conditional_t<std::is_lvalue_reference_v<decltype(instance)>,
+				std::add_lvalue_reference_t<value_type>, std::add_rvalue_reference_t<value_type>
+			>
+			requires (!std::is_void_v<value_type>)
+		{
+			return *std::forward<decltype(instance)> (instance);
+		}
+		[[nodiscard]]
+		static constexpr auto getError(flex::forward_of<type> auto&& instance) noexcept
+			-> std::conditional_t<std::is_lvalue_reference_v<decltype(instance)>,
+				std::add_lvalue_reference_t<error_type>, std::add_rvalue_reference_t<error_type>
+			>
+		{
+			return std::forward<decltype(instance)> (instance).error();
+		}
+
+		[[nodiscard]]
+		static constexpr auto getValueOr(
+			flex::forward_of<type> auto&& instance,
+			flex::forward_of<value_type> auto&& defaultValue
+		) noexcept -> value_type requires (!std::is_void_v<value_type>) {
+			if constexpr (requires {std::forward<decltype(instance)> (instance)
+				.value_or(std::forward<decltype(defaultValue)> (defaultValue));
+			}) {
+				return std::forward<decltype(instance)> (instance)
+					.value_or(std::forward<decltype(defaultValue)> (defaultValue));
+			}
+			else {
+				return !std::forward<decltype(instance)>
+					? std::forward<decltype(defaultValue)>
+					: *std::forward<decltype(instance)> (instance);
+			}
+		}
+
+		[[nodiscard]]
+		static constexpr auto getErrorOr(
+			flex::forward_of<type> auto&& instance,
+			flex::forward_of<error_type> auto&& defaultValue
+		) noexcept -> value_type {
+			if constexpr (requires {std::forward<decltype(instance)> (instance)
+				.error_or(std::forward<decltype(defaultValue)> (defaultValue));
+			}) {
+				return std::forward<decltype(instance)> (instance)
+					.error_or(std::forward<decltype(defaultValue)> (defaultValue));
+			}
+			else {
+				return !std::forward<decltype(instance)>
+					? std::forward<decltype(defaultValue)>
+					: std::forward<decltype(instance)> (instance).error();
+			}
+		}
+
+		[[nodiscard]]
+		static constexpr auto andThen(flex::forward_of<type> auto&& instance, auto&& func)
+			noexcept(noexcept(std::forward<decltype(func)> (func)(*std::forward<decltype(instance)> (instance))))
+			requires (!std::is_void_v<value_type>)
+		{
+			if constexpr (requires {std::forward<decltype(instance)> (instance)
+				.and_then(std::forward<decltype(func)> (func));
+			}) {
+				return std::forward<decltype(instance)> (instance)
+					.and_then(std::forward<decltype(func)> (func));
+			}
+			else {
+				using Ret = decltype(std::forward<decltype(func)> (func)(
+					*std::forward<decltype (instance)> (instance)
+				));
+				if (!!std::forward<decltype(instance)>)
+					return std::forward<decltype(func)> (func)(*std::forward<decltype (instance)> (instance));
+				else
+					return std::remove_cvref_t<Ret> {};
+			}
+		}
+
+		[[nodiscard]]
+		static constexpr auto transform(flex::forward_of<type> auto&& instance, auto&& func)
+			noexcept(noexcept(std::forward<decltype(func)> (func)(*std::forward<decltype(instance)> (instance))))
+			requires (!std::is_void_v<value_type>)
+		{
+			if constexpr (requires {std::forward<decltype(instance)> (instance)
+				.transform(std::forward<decltype(func)> (func));
+			}) {
+				return std::forward<decltype(instance)> (instance)
+					.transform(std::forward<decltype(func)> (func));
+			}
+			else {
+				using Ret = decltype(type{std::forward<decltype(func)> (func)(
+					*std::forward<decltype (instance)> (instance)
+				)});
+				if (!!std::forward<decltype(instance)>)
+					return type{std::forward<decltype(func)> (func)(*std::forward<decltype (instance)> (instance))};
+				else
+					return std::remove_cvref_t<Ret> {};
+			}
+		}
+
+		[[nodiscard]]
+		static constexpr auto or_else(flex::forward_of<type> auto&& instance, auto&& func)
+			noexcept(noexcept(std::forward<decltype(func)> (func)()))
+			requires (!std::is_void_v<value_type>)
+		{
+			if constexpr (requires {std::forward<decltype(instance)> (instance)
+				.or_else(std::forward<decltype(func)> (func));
+			}) {
+				return std::forward<decltype(instance)> (instance)
+					.or_else(std::forward<decltype(func)> (func));
+			}
+			else {
+				return !std::forward<decltype(instance)> (instance)
+					? std::forward<func> (func)()
+					: *std::forward<decltype(instance)> (instance);
+			}
+		}
+	};
+
+	static_assert(internals::autogen_error_type<std::optional<int>>);
+	static_assert(!internals::autogen_error_type_with_error<std::optional<int>>);
+	static_assert(error_type<std::optional<int>>);
+}

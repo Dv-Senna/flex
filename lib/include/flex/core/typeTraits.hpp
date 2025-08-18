@@ -59,6 +59,10 @@ namespace flex{
 	concept pointer_or_reference = pointer<T> || reference<T>;
 
 
+	template <typename T, typename U>
+	concept similar_to = std::same_as<std::remove_cvref_t<T>, std::remove_cvref_t<U>>;
+
+
 	template <typename T>
 	concept cv_reference = reference<T> || std::is_const_v<T>|| std::is_volatile_v<T>;
 
