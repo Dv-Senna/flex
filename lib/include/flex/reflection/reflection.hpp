@@ -54,6 +54,15 @@ namespace flex::reflection {
 		}
 	}
 
+	template <typename T>
+	constexpr auto name_v = reflection_traits<T>::name;
+	template <typename T>
+	constexpr auto member_count_v = reflection_traits<T>::member_count;
+	template <typename T>
+	constexpr auto member_names_v = reflection_traits<T>::member_names;
+	template <typename T>
+	using member_types_t = typename reflection_traits<T>::member_types;
+
 	template <internals::pure_class_aggregate T>
 	struct reflection_traits<T> {
 		using type = T;
