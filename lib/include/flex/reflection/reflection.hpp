@@ -262,7 +262,7 @@ namespace flex::reflection {
 	) -> void {
 		using T = std::remove_reference_t<decltype(instance)>;
 		using CountT = decltype(reflection_traits<T>::member_count);
-		auto loop {[&, instance = std::forward<decltype(instance)> (instance)]
+		auto loop {[&, &instance = std::forward<decltype(instance)> (instance)]
 			<std::unsigned_integral auto I = CountT{0}> (auto& loop) mutable
 		{
 			using Member = typename std::tuple_element<I, typename reflection_traits<T>::member_types>::type;
@@ -299,7 +299,7 @@ namespace flex::reflection {
 	{
 		using T = std::remove_cvref_t<std::tuple_element_t<0, std::tuple<decltype(instance)...>>>;
 		using CountT = decltype(reflection_traits<T>::member_count);
-		auto loop {[&, ...instance = std::forward<decltype(instance)> (instance)]
+		auto loop {[&, &...instance = std::forward<decltype(instance)> (instance)]
 			<std::unsigned_integral auto I = CountT{0}> (auto& loop) mutable
 		{
 			using Member = typename std::tuple_element<I, typename reflection_traits<T>::member_types>::type;
@@ -333,7 +333,7 @@ namespace flex::reflection {
 	) -> void {
 		using T = std::remove_reference_t<decltype(instance)>;
 		using CountT = decltype(reflection_traits<T>::member_count);
-		auto loop {[&, instance = std::forward<decltype(instance)> (instance)]
+		auto loop {[&, &instance = std::forward<decltype(instance)> (instance)]
 			<std::unsigned_integral auto I = CountT{0}> (auto& loop) mutable
 		{
 			using Member = typename std::tuple_element<I, typename reflection_traits<T>::member_types>::type;

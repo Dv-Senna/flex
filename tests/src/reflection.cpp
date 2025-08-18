@@ -83,7 +83,20 @@ struct Foo {
 	};
 };
 
-static_assert(flex::reflection::member_count_v<Foo> == 2);
+static_assert(flex::reflection::userProvided::has_metadata<Foo>);
+static_assert(flex::reflection::userProvided::metadata_has_rename<Foo::FlexMetadata>);
+static_assert(!flex::reflection::userProvided::metadata_has_remove<Foo::FlexMetadata>);
+static_assert(!flex::reflection::userProvided::metadata_has_new_member<Foo::FlexMetadata>);
+static_assert(flex::reflection::reflection_traits<Foo>::member_count == 2);
+static_assert(std::ranges::equal(
+	flex::reflection::reflection_traits<Foo>::member_names,
+	std::vector<std::string_view> {"a", "c"}
+));
+static_assert(std::same_as<
+	flex::reflection::reflection_traits<Foo>::member_types,
+	std::tuple<int, int>
+>);
+static_assert(flex::reflection::reflectable<Foo>);
 
 
 static_assert(flex::reflection::reflectable<Address>);
