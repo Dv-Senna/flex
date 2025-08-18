@@ -73,6 +73,19 @@ static_assert(std::same_as<
 >);
 
 
+struct Foo {
+	int a;
+	int b;
+	struct FlexMetadata {
+		static constexpr auto rename = std::make_tuple(
+			std::tuple{"c", &Foo::b}
+		);
+	};
+};
+
+static_assert(flex::reflection::member_count_v<Foo> == 2);
+
+
 static_assert(flex::reflection::reflectable<Address>);
 static_assert(flex::reflection::reflectable<Person>);
 static_assert(flex::reflection::aggregate::member_count_v<Address> == 5);
