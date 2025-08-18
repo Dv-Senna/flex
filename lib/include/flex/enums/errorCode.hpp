@@ -2,7 +2,7 @@
 
 #include <type_traits>
 
-#include "flex/reflection/enums.hpp"
+#include "flex/enums/enums.hpp"
 
 
 namespace flex {
@@ -52,4 +52,4 @@ namespace flex {
 	template <typename T>
 	concept error_code = is_error_code_v<T>;
 
-} // namespace flex
+}

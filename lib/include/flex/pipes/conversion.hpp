@@ -12,21 +12,25 @@ namespace flex::pipes {
 	class StaticCastToPipe final {
 		public:
 			constexpr StaticCastToPipe() noexcept = default;
+			StaticCastToPipe(const StaticCastToPipe&) = delete;
+			auto operator=(const StaticCastToPipe&) -> StaticCastToPipe& = delete;
+			StaticCastToPipe(StaticCastToPipe&&) = delete;
+			auto operator=(StaticCastToPipe&&) -> StaticCastToPipe& = delete;
 			constexpr ~StaticCastToPipe() = default;
 
 			template <typename U>
 			[[nodiscard]]
 			constexpr auto operator()(U &&value) noexcept {
-				return static_cast<T> (value);
+				return static_cast<T> (std::forward<U> (value));
 			}
 
 			template <typename Optional>
 			requires flex::optional<std::remove_cvref_t<Optional>>
 			[[nodiscard]]
 			constexpr auto operator()(Optional &&optional) noexcept -> std::optional<T> {
-				if (!optional)
+				if (!std::forward<Optional> (optional))
 					return std::nullopt;
-				return (*this)(*optional);
+				return (*this)(*std::forward<Optional> (optional));
 			}
 	};
 
@@ -38,21 +42,26 @@ namespace flex::pipes {
 	class ReinterpretCastToPipe final {
 		public:
 			constexpr ReinterpretCastToPipe() noexcept = default;
+			ReinterpretCastToPipe(const ReinterpretCastToPipe&) = delete;
+			auto operator=(const ReinterpretCastToPipe&) -> ReinterpretCastToPipe& = delete;
+			ReinterpretCastToPipe(ReinterpretCastToPipe&&) = delete;
+			auto operator=(ReinterpretCastToPipe&&) -> ReinterpretCastToPipe& = delete;
 			constexpr ~ReinterpretCastToPipe() = default;
 
 			template <typename U>
 			[[nodiscard]]
 			constexpr auto operator()(U &&value) noexcept {
-				return reinterpret_cast<T> (value);
+			// NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+				return reinterpret_cast<T> (std::forward<U> (value));
 			}
 
 			template <typename Optional>
 			requires flex::optional<std::remove_cvref_t<Optional>>
 			[[nodiscard]]
 			constexpr auto operator()(Optional &&optional) noexcept -> std::optional<T> {
-				if (!optional)
+				if (!std::forward<Optional> (optional))
 					return std::nullopt;
-				return (*this)(*optional);
+				return (*this)(*std::forward<Optional> (optional));
 			}
 	};
 
@@ -68,6 +77,10 @@ namespace flex::pipes {
 		>;
 		public:
 			constexpr DynamicCastToPipe() noexcept = default;
+			DynamicCastToPipe(const DynamicCastToPipe&) = delete;
+			auto operator=(const DynamicCastToPipe&) -> DynamicCastToPipe& = delete;
+			DynamicCastToPipe(DynamicCastToPipe&&) = delete;
+			auto operator=(DynamicCastToPipe&&) -> DynamicCastToPipe& = delete;
 			constexpr ~DynamicCastToPipe() = default;
 
 			template <typename U>
@@ -79,9 +92,9 @@ namespace flex::pipes {
 				>;
 				Pointerify res {nullptr};
 				if constexpr (flex::reference<T>)
-					res = dynamic_cast<Pointerify> (&value);
+					res = dynamic_cast<Pointerify> (&std::forward<U> (value));
 				else
-					res = dynamic_cast<T> (value);
+					res = dynamic_cast<T> (std::forward<U> (value));
 
 				if (res == nullptr)
 					return std::nullopt;
@@ -96,9 +109,9 @@ namespace flex::pipes {
 			requires flex::optional<std::remove_cvref_t<Optional>>
 			[[nodiscard]]
 			constexpr auto operator()(Optional &&optional) noexcept -> std::optional<ReturnType> {
-				if (!optional)
+				if (!std::forward<Optional> (optional))
 					return std::nullopt;
-				return (*this)(*optional);
+				return (*this)(*std::forward<Optional> (optional));
 			}
 	};
 
@@ -110,17 +123,21 @@ namespace flex::pipes {
 	class AnyCastToPipe final {
 		public:
 			constexpr AnyCastToPipe() noexcept = default;
+			AnyCastToPipe(const AnyCastToPipe&) = delete;
+			auto operator=(const AnyCastToPipe&) -> AnyCastToPipe& = delete;
+			AnyCastToPipe(AnyCastToPipe&&) = delete;
+			auto operator=(AnyCastToPipe&&) -> AnyCastToPipe& = delete;
 			constexpr ~AnyCastToPipe() = default;
 
 			template <typename Any>
 			requires std::same_as<std::remove_cvref_t<Any>, std::any>
 			[[nodiscard]]
 			constexpr auto operator()(Any &&any) noexcept -> std::optional<T> {
-				if (!any.has_value())
+				if (!std::forward<Any> (any).has_value())
 					return std::nullopt;
-				if (any.type() != typeid(T))
+				if (std::forward<Any> (any).type() != typeid(T))
 					return std::nullopt;
-				return std::any_cast<T> (any);
+				return std::any_cast<T> (std::forward<Any> (any));
 			}
 
 			template <typename Optional>
@@ -128,9 +145,9 @@ namespace flex::pipes {
 				&& std::same_as<std::remove_cvref_t<typename std::remove_cvref_t<Optional>::value_type>, std::any>
 			[[nodiscard]]
 			constexpr auto operator()(Optional &&optional) noexcept -> std::optional<T> {
-				if (!optional)
+				if (!std::forward<Optional> (optional))
 					return std::nullopt;
-				return (*this)(*optional);
+				return (*this)(*std::forward<Optional> (optional));
 			}
 	};
 
@@ -143,25 +160,29 @@ namespace flex::pipes {
 	class ConstructToPipe final {
 		public:
 			constexpr ConstructToPipe() noexcept = default;
+			ConstructToPipe(const ConstructToPipe&) = delete;
+			auto operator=(const ConstructToPipe&) -> ConstructToPipe& = delete;
+			ConstructToPipe(ConstructToPipe&&) = delete;
+			auto operator=(ConstructToPipe&&) -> ConstructToPipe& = delete;
 			constexpr ~ConstructToPipe() = default;
 
 			template <typename U>
 			[[nodiscard]]
 			constexpr auto operator()(U &&value) noexcept {
-				return T{value};
+				return T{std::forward<U> (value)};
 			};
 
 			template <typename Optional>
 			requires flex::optional<std::remove_cvref_t<Optional>>
 			[[nodiscard]]
 			constexpr auto operator()(Optional &&optional) noexcept -> std::optional<T> {
-				if (!optional)
+				if (!std::forward<Optional> (optional))
 					return std::nullopt;
-				return (*this)(*optional);
+				return (*this)(*std::forward<Optional> (optional));
 			}
 	};
 
 	template <flex::no_cv_reference T>
 	constexpr flex::pipes::PipeAdaptator<ConstructToPipe<T>> construct_to {};
 
-} // namespace flex::pipes
+}

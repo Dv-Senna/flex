@@ -1,5 +1,5 @@
 #include <flex/enums/enums.hpp>
-#include <flex/core/bitfield.hpp>
+#include <flex/enums/bitfield.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 

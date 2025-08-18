@@ -31,7 +31,7 @@ namespace flex {
 	// implementation taken from https://en.cppreference.com/w/cpp/types/is_scoped_enum.html
 	template <typename T>
 	concept scoped_enumeration = enumeration<T>
-		&& !std::is_convertible<T, typename std::underlying_type<T>::type>::value;
+		&& !std::is_convertible_v<T, std::underlying_type_t<T>>;
 #endif
 
 
@@ -175,6 +175,8 @@ namespace flex {
 } // namespace flex
 
 
+// NOLINTBEGIN(cppcoreguidelines-macro-usage)
+
 #define FLEX_MAKE_ENUM_BITFLAG(name) template <>\
 	struct flex::enum_value_generator<name> {\
 		static constexpr auto value {[](std::size_t index) constexpr {return (name)((std::underlying_type_t<name>)(1) << index);}};\
@@ -187,5 +189,7 @@ namespace flex {
 #ifdef __cpp_impl_reflection
 	#undef FLEX_REFLECTION_DEPRECATION
 #endif
+
+// NOLINTEND(cppcoreguidelines-macro-usage)
 
 #include "flex/enums/enums.inl"

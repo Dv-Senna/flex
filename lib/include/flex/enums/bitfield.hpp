@@ -109,7 +109,7 @@ namespace flex {
 		return result;
 	}
 
-} // namespace flex
+}
 
 
 template <flex::scoped_enumeration T>

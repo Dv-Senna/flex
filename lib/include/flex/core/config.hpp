@@ -1,6 +1,6 @@
 #pragma once
 
-// NOLINTBEGIN(cppcoreguidelines-macro-usage)
+// NOLINTBEGIN(cppcoreguidelines-macro-usage,cppcoreguidelines-macro-to-enum,modernize-macro-to-enum)
 
 #ifdef __cpp_exceptions
 	#define FLEX_TRY try
@@ -16,4 +16,4 @@
 #define FLEX_CPP_23 202302L
 #define FLEX_CPP_26 202400L // temporary value used by current C++26 compiler
 
-// NOLINTEND(cppcoreguidelines-macro-usage)
+// NOLINTEND(cppcoreguidelines-macro-usage,cppcoreguidelines-macro-to-enum,modernize-macro-to-enum)

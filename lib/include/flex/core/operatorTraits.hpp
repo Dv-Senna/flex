@@ -13,8 +13,13 @@ namespace flex::operators {
 	template <typename T>
 	concept member_dereferenceable = flex::pointer<T> || requires(T val) {val.operator->();};
 
+#if defined(__cpp_multidimensional_subscript) && __cpp_multidimensional_subscript >= 202211L
 	template <typename T, typename ...Args>
 	concept subscript_accessible = requires(T val) {val[std::declval<Args> ()...];};
+#else
+	template <typename T, typename Arg>
+	concept subscript_accessible = requires(T val) {val[std::declval<Arg> ()];};
+#endif
 
 
 	template <typename T>

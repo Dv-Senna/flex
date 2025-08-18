@@ -25,20 +25,44 @@ namespace flex {
 			constexpr auto get() const noexcept -> ReferenceType {return *m_ref;}
 			constexpr operator ReferenceType() const noexcept {return *m_ref;}
 
-			constexpr auto operator*() const noexcept -> ReferenceType requires (!flex::operators::dereferenceable<T>) {return *m_ref;}
-			constexpr auto operator&() const noexcept -> PointerType requires (!flex::operators::addressable<T>) {return m_ref;}
-			constexpr auto operator->() const noexcept -> PointerType requires (!flex::operators::member_dereferenceable<T>) {return m_ref;}
+			constexpr auto operator*() const noexcept -> ReferenceType requires (!flex::operators::dereferenceable<T>) {
+				return *m_ref;
+			}
+			constexpr auto operator&() const noexcept -> PointerType requires (!flex::operators::addressable<T>) {
+				return m_ref;
+			}
+			constexpr auto operator->() const noexcept -> PointerType
+				requires (!flex::operators::member_dereferenceable<T>)
+			{
+				return m_ref;
+			}
 
 			constexpr auto operator*() const noexcept requires flex::operators::dereferenceable<T> {return **m_ref;}
 			constexpr auto operator&() const noexcept requires flex::operators::addressable<T> {return &*m_ref;}
-			constexpr auto operator->() const noexcept requires flex::operators::member_dereferenceable<T> {return m_ref->operator->();}
+			constexpr auto operator->() const noexcept requires flex::operators::member_dereferenceable<T> {
+				return m_ref->operator->();
+			}
 
+		#if defined(__cpp_multidimensional_subscript) && __cpp_multidimensional_subscript >= 202211L
 			template <typename ...Args>
 			requires flex::operators::subscript_accessible<T, Args...>
 			constexpr auto operator[](Args&& ...args) const noexcept {return (*m_ref)[std::forward<Args> (args)...];}
+		#else
+			template <typename Arg>
+			requires flex::operators::subscript_accessible<T, Arg>
+			constexpr auto operator[](Arg&& arg) const noexcept {return (*m_ref)[std::forward<Arg> (arg)];}
+		#endif
 
-			constexpr auto operator==(ConstReferenceType val) const noexcept requires flex::operators::equality_comparable<T> {return *m_ref == val;}
-			constexpr auto operator<=> (ConstReferenceType val) const noexcept requires flex::operators::three_way_comparable<T> {return *m_ref <=> val;}
+			constexpr auto operator==(ConstReferenceType val) const noexcept
+				requires flex::operators::equality_comparable<T>
+			{
+				return *m_ref == val;
+			}
+			constexpr auto operator<=> (ConstReferenceType val) const noexcept
+				requires flex::operators::three_way_comparable<T>
+			{
+				return *m_ref <=> val;
+			}
 
 
 		private:

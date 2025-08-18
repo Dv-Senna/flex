@@ -8,13 +8,17 @@ namespace flex::pipes {
 	class HasValuePipe final {
 		public:
 			constexpr HasValuePipe() noexcept = default;
+			HasValuePipe(const HasValuePipe&) = delete;
+			auto operator=(const HasValuePipe&) -> HasValuePipe& = delete;
+			HasValuePipe(HasValuePipe&&) = delete;
+			auto operator=(HasValuePipe&&) -> HasValuePipe& = delete;
 			constexpr ~HasValuePipe() = default;
 
 			template <typename Optional>
 			requires flex::optional<std::remove_cvref_t<Optional>>
 			[[nodiscard]]
 			constexpr auto operator()(Optional &&optional) noexcept {
-				return optional.has_value();
+				return std::forward<Optional> (optional).has_value();
 			}
 	};
 

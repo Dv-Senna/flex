@@ -11,6 +11,7 @@ namespace flex {
 		public:
 			constexpr Number() noexcept = default;
 			constexpr ~Number() = default;
+		// NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
 			constexpr Number(T &&value) noexcept : m_value {value} {}
 
 			constexpr Number(const Self&) noexcept = default;
@@ -31,7 +32,9 @@ namespace flex {
 			constexpr auto operator*(const Self &self) const noexcept -> Self {return {m_value * self.m_value};}
 			constexpr auto operator/(const Self &self) const noexcept -> Self {return {m_value / self.m_value};}
 
-			constexpr auto operator%(const Self &self) const noexcept -> Self requires (std::is_integral_v<T>) {return {m_value % self.m_value};}
+			constexpr auto operator%(const Self &self) const noexcept -> Self requires (std::is_integral_v<T>) {
+				return {m_value % self.m_value};
+			}
 
 			explicit constexpr operator T() const noexcept {return m_value;}
 

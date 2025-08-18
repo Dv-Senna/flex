@@ -28,7 +28,7 @@ namespace flex::reflection {
 		concept pure_class_aggregate = flex::class_aggregate<T> && !flex::reflection::userProvided::has_metadata<T>;
 
 		template <typename T>
-		requires (std::is_class<T>::value)
+		requires (std::is_class_v<T>)
 		consteval auto getTypeName() noexcept -> std::string_view {
 		#ifdef __cpp_impl_reflection
 			if constexpr (has_identifier(^^T))
@@ -159,9 +159,9 @@ namespace flex::reflection {
 
 		template <typename T, typename Func, auto I>
 		struct is_member_func_noexcept<T, Func, I,
-			typename std::enable_if<flex::is_specialization_of<
-				typename std::tuple_element<I, typename reflection_traits<T>::member_types>::type, WriteOnly
-			>::value>::type
+			std::enable_if_t<flex::specialization_of<
+				std::tuple_element_t<I, typename reflection_traits<T>::member_types>, WriteOnly
+			>>
 		> : std::true_type {};
 
 
@@ -189,9 +189,9 @@ namespace flex::reflection {
 
 		template <typename First, typename Func, auto I, typename ...T>
 		struct is_zip_member_func_noexcept<First, Func, I,
-			typename std::enable_if<flex::is_specialization_of<
-				typename std::tuple_element<I, typename reflection_traits<First>::member_types>::type, WriteOnly
-			>::value>::type,
+			std::enable_if_t<flex::specialization_of<
+				std::tuple_element_t<I, typename reflection_traits<First>::member_types>, WriteOnly
+			>>,
 		T...> : std::true_type {};
 
 
@@ -230,9 +230,9 @@ namespace flex::reflection {
 
 		template <typename T, typename Func, auto I>
 		struct is_named_member_func_noexcept<T, Func, I,
-			typename std::enable_if<flex::is_specialization_of<
-				typename std::tuple_element<I, typename reflection_traits<T>::member_types>::type, WriteOnly
-			>::value>::type
+			std::enable_if_t<flex::specialization_of<
+				std::tuple_element_t<I, typename reflection_traits<T>::member_types>, WriteOnly
+			>>
 		> : std::true_type {};
 
 		template <typename T, typename Func,
@@ -258,11 +258,11 @@ namespace flex::reflection {
 		{
 			using Member = typename std::tuple_element<I, typename reflection_traits<T>::member_types>::type;
 			if constexpr (!flex::is_specialization_of<Member, WriteOnly>::value) {
-				using FuncRet = typename std::invoke_result<
+				using FuncRet = std::invoke_result_t<
 					decltype(func),
 					std::add_lvalue_reference_t<std::tuple_element_t<I, typename reflection_traits<T>::member_types>>
-				>::type;
-				if constexpr (std::is_void<FuncRet>::value)
+				>;
+				if constexpr (std::is_void_v<FuncRet>)
 					func(internals::unwrapMember(reflection_traits<T>::template getMember<I> (instance)));
 				else if constexpr (std::same_as<FuncRet, bool>) {
 					if (!func(internals::unwrapMember(reflection_traits<T>::template getMember<I> (instance))))
@@ -301,7 +301,7 @@ namespace flex::reflection {
 						std::remove_cvref_t<decltype(instance)>
 					>::member_types>>...
 				>;
-				if constexpr (std::is_void<FuncRet>::value)
+				if constexpr (std::is_void_v<FuncRet>)
 					func(internals::unwrapMember(reflection_traits<T>::template getMember<I> (instance))...);
 				else if constexpr (std::same_as<FuncRet, bool>) {
 					if (!func(internals::unwrapMember(reflection_traits<T>::template getMember<I> (instance))...))
@@ -334,7 +334,7 @@ namespace flex::reflection {
 					std::add_lvalue_reference_t<std::tuple_element_t<I, typename reflection_traits<T>::member_types>>,
 					std::string_view
 				>;
-				if constexpr (std::is_void<FuncRet>::value) {
+				if constexpr (std::is_void_v<FuncRet>) {
 					func(
 						internals::unwrapMember(reflection_traits<T>::template getMember<I> (instance)),
 						reflection_traits<T>::member_names[I]

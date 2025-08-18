@@ -74,6 +74,7 @@ namespace flex::reflection::aggregate {
 
 	namespace internals {
 		template <typename T>
+	// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 		extern T fakeObject;
 
 		template <auto ptr>

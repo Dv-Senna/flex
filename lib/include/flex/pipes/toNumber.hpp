@@ -16,6 +16,10 @@ namespace flex::pipes {
 		static constexpr auto DEFAULT_ARGS {flex::conditional_value_v<COND, 10, std::chars_format{}>};
 		public:
 			constexpr ToNumberPipe(Args args = DEFAULT_ARGS) noexcept : m_args {args} {}
+			ToNumberPipe(const ToNumberPipe&) = delete;
+			auto operator=(const ToNumberPipe&) -> ToNumberPipe& = delete;
+			ToNumberPipe(ToNumberPipe&&) = delete;
+			auto operator=(ToNumberPipe&&) -> ToNumberPipe& = delete;
 			constexpr ~ToNumberPipe() = default;
 
 			template <typename String>
@@ -26,8 +30,8 @@ namespace flex::pipes {
 				const char *start {};
 				const char *end {};
 				if constexpr (std::same_as<std::string_view, CleanString> || std::same_as<std::string, CleanString>) {
-					start = string.data();
-					end = start + string.size();
+					start = std::forward<String> (string).data();
+					end = start + std::forward<String> (string).size();
 				}
 				else {
 					start = string;
@@ -45,9 +49,9 @@ namespace flex::pipes {
 			requires flex::optional<std::remove_cvref_t<Optional>>
 			[[nodiscard]]
 			constexpr auto operator()(Optional &&optional) noexcept -> std::optional<T> {
-				if (!optional)
+				if (!std::forward<Optional> (optional))
 					return std::nullopt;
-				return (*this)(*optional);
+				return (*this)(*std::forward<Optional> (optional));
 			}
 
 		private:

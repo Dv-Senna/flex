@@ -13,56 +13,30 @@
 namespace flex::pipes {
 	class ToStringPipe {
 		public:
-			constexpr ToStringPipe(std::optional<std::locale> locale = std::nullopt) noexcept : m_locale {locale} {}
+			constexpr ToStringPipe(std::optional<std::locale> locale = std::nullopt) noexcept :
+				m_locale {std::move(locale)}
+			{}
+			ToStringPipe(const ToStringPipe&) = delete;
+			auto operator=(const ToStringPipe&) -> ToStringPipe& = delete;
+			ToStringPipe(ToStringPipe&&) = delete;
+			auto operator=(ToStringPipe&&) -> ToStringPipe& = delete;
 			constexpr ~ToStringPipe() = default;
 
 			template <typename Stringifyable>
 			[[nodiscard]]
 			constexpr auto operator()(flex::stringifyable auto &&value) noexcept {
 				return flex::toString(std::forward<decltype(value)> (value));
-/*				using T = std::remove_cvref_t<Stringifyable>;
-				if constexpr (flex::arithmetic<T>) {
-					if (!m_locale) {
-						constexpr std::size_t chunkSize {16};
-						std::vector<char> buffer {};
-						std::errc err {};
-						char *ptr {nullptr};
-						do {
-							buffer.resize(buffer.size() + chunkSize);
-							const auto [_ptr, _err] {std::to_chars(buffer.data(), buffer.data() + buffer.size(), stringifyable)};
-							err = _err;
-							ptr = _ptr;
-						} while (err == std::errc::value_too_large);
-						return std::string{buffer.data(), ptr};
-					}
-					else
-						return std::format(*m_locale, "{}", stringifyable);
-				}
-				else if constexpr (flex::string<T>)
-					return std::string{stringifyable};
-				else if constexpr (std::same_as<T, bool>) {
-					if (!m_locale) {
-						if (stringifyable)
-							return "true";
-						else
-							return "false";
-					}
-					else
-						return std::format(*m_locale, "{}", stringifyable);
-				}
-				else
-					return flex::toString(stringifyable);*/
 			}
 
 			template <typename Optional>
 			requires flex::optional<std::remove_cvref_t<Optional>>
 			[[nodiscard]]
 			constexpr auto operator()(Optional &&optional) noexcept {
-				using Result = decltype((*this)(*optional));
+				using Result = decltype((*this)(*std::forward<Optional> (optional)));
 				using OptionalResult = std::conditional_t<flex::optional<Result>, Result, std::optional<Result>>;
-				if (!optional)
+				if (!std::forward<Optional> (optional))
 					return OptionalResult{std::nullopt};
-				return OptionalResult{(*this)(*optional)};
+				return OptionalResult{(*this)(*std::forward<Optional> (optional))};
 			}
 
 		private:

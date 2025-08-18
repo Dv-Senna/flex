@@ -77,7 +77,7 @@ namespace flex::pipes {
 	 * */
 	template <typename EntryType, __internals::incomplete_pipe<EntryType> PipeObject>
 	constexpr auto operator|(EntryType &&entry, PipeObject &&pipeObject) noexcept {
-		return pipeObject(std::forward<EntryType> (entry));
+		return std::forward<PipeObject> (pipeObject)(std::forward<EntryType> (entry));
 	}
 
 

@@ -8,7 +8,12 @@ namespace flex::pipes {
 	template <typename Callback>
 	class TransformPipe final {
 		public:
+		// NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
 			constexpr TransformPipe(Callback &&callback) noexcept : m_callback {std::forward<Callback> (callback)} {}
+			TransformPipe(const TransformPipe&) = delete;
+			auto operator=(const TransformPipe&) -> TransformPipe& = delete;
+			TransformPipe(TransformPipe&&) = delete;
+			auto operator=(TransformPipe&&) -> TransformPipe& = delete;
 			constexpr ~TransformPipe() = default;
 
 
@@ -22,7 +27,7 @@ namespace flex::pipes {
 			requires flex::optional<std::remove_cvref_t<Optional>>
 			[[nodiscard]]
 			constexpr auto operator()(Optional &&optional) noexcept {
-				return optional.transform(m_callback);
+				return std::forward<Optional> (optional).transform(m_callback);
 			};
 
 
