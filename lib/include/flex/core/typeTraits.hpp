@@ -454,4 +454,33 @@ namespace flex{
 		};
 	#endif
 
+
+	template <typename T, typename ...Args>
+	concept predicate = requires(T v, Args... args) {
+		v(args...);
+	};
+
+	template <typename T, typename Ret, typename ...Args>
+	concept predicate_with_return = predicate<T, Args...> && requires(T v, Args... args) {
+		{v(args...)} -> std::convertible_to<Ret>;
+	};
+
+	template <typename T, typename Ret, typename ...Args>
+	concept predicate_with_strict_return = predicate_with_return<T, Ret, Args...> && requires(T v, Args... args) {
+		{v(args...)} -> std::same_as<Ret>;
+	};
+
+	template <typename T, typename ...Args>
+	concept noexcept_predicate = predicate<T, Args...> && requires(T v, Args... args) {
+		noexcept(v(args...));
+	};
+
+	template <typename T, typename Ret, typename ...Args>
+	concept noexcept_predicate_with_return = noexcept_predicate<T, Args...>
+		&& predicate_with_return<T, Ret, Args...>;
+
+	template <typename T, typename Ret, typename ...Args>
+	concept noexcept_predicate_with_strict_return = noexcept_predicate_with_return<T, Ret, Args...>
+		&& predicate_with_strict_return<T, Ret, Args...>;
+
 } // namespace flex

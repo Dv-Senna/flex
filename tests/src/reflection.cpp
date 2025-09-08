@@ -1,7 +1,4 @@
-#include "flex/core/stringifier.hpp"
 #include <format>
-#include <iomanip>
-#include <iostream>
 #include <string>
 #include <string_view>
 
@@ -9,6 +6,7 @@
 
 #include <flex/reflection/comparaison.hpp>
 #include <flex/reflection/reflection.hpp>
+#include <flex/core/stringifier.hpp>
 #include <flex/reflection/userProvided.hpp>
 
 
