@@ -421,6 +421,13 @@ namespace flex{
 	static_assert(!variant_forward_of<const int, int>);
 	static_assert(variant_forward_of<const int, const int>);
 
+	template <typename T>
+	using forward_type_t = decltype(std::forward<T> (std::declval<T> ()));
+
+	template <typename T>
+	concept nothrow_forward_constructible = std::is_nothrow_constructible_v<std::remove_cvref_t<T>, forward_type_t<T>>;
+
+
 
 	template <typename T>
 	requires std::same_as<T, std::remove_const_t<T>>

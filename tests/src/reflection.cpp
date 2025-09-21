@@ -1,12 +1,10 @@
-#include "flex/core/stringifier.hpp"
 #include <format>
-#include <iomanip>
-#include <iostream>
 #include <string>
 #include <string_view>
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <flex/core/stringifier.hpp>
 #include <flex/reflection/comparaison.hpp>
 #include <flex/reflection/reflection.hpp>
 #include <flex/reflection/userProvided.hpp>

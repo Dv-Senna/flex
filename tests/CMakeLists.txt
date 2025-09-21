@@ -74,6 +74,7 @@ add_module_test(macros STANDARDS 23 COMPTIME_ONLY)
 add_module_test(reflection STANDARDS 20 23)
 add_module_test(enums STANDARDS 20 23)
 add_module_test(containers STANDARDS 20 23)
+add_module_test(pipes STANDARDS 20 23)
 
 
 add_custom_target(flex-tests

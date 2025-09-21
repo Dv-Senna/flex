@@ -59,4 +59,13 @@ target_compile_definitions(flex-enums INTERFACE
 flex_install_component(enums)
 
 
+# pipes component
+add_library(flex-pipes INTERFACE)
+add_library(flex::flex-pipes ALIAS flex-pipes)
+target_link_libraries(flex-pipes INTERFACE
+	flex-common-config
+)
+flex_install_component(pipes)
+
+
 flex_install()
