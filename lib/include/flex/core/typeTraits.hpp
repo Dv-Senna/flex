@@ -454,4 +454,11 @@ namespace flex{
 		};
 	#endif
 
+
+	template <typename T>
+	concept outcome = requires (T v) {
+		*v;
+		!!v;
+	};
+
 } // namespace flex
