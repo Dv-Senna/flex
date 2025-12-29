@@ -1,5 +1,7 @@
 #pragma once
 
+#include <concepts>
+#include <tuple>
 #include <type_traits>
 
 #include "flex/core/typeTraits.hpp"
@@ -25,6 +27,17 @@ namespace flex {
 	using pop_first_tuple_element_t = typename pop_first_tuple_element<T>::type;
 
 	static_assert(std::is_same_v<std::tuple<float>, pop_first_tuple_element_t<std::tuple<int, float>>>);
+
+
+	template <flex::tuple T, std::size_t N>
+	requires (N <= std::tuple_size_v<T>)
+	struct pop_nth_first_tuple_element : flex::type_constant<
+		pop_nth_first_tuple_element<pop_first_tuple_element_t<T>, N - 1>
+	> {};
+	template <flex::tuple T>
+	struct pop_nth_first_tuple_element<T, std::size_t{0}> : flex::type_constant<T> {};
+	template <flex::tuple T, std::size_t N>
+	using pop_nth_first_tuple_element_t = typename pop_nth_first_tuple_element<T, N>::type;
 
 
 	template <typename T, flex::tuple Tuple, std::size_t INDEX = 0, std::size_t SIZE = std::tuple_size_v<Tuple>>
@@ -85,5 +98,26 @@ namespace flex {
 
 	static_assert(is_same_sets_v<std::tuple<int, float>, std::tuple<int, float>>);
 	static_assert(is_same_sets_v<std::tuple<int, float>, std::tuple<float, int>>);
+
+
+	template <template <typename...> typename Pattern, flex::tuple Args>
+	struct apply_tuple;
+	template <template <typename...> typename Pattern, typename ...Args>
+	struct apply_tuple<Pattern, std::tuple<Args...>> final : flex::type_constant<Pattern<Args...>> {};
+	template <template <typename...> typename Pattern, flex::tuple Args>
+	using apply_tuple_t = typename apply_tuple<Pattern, Args>::type;
+
+	template <typename T, typename ...Args>
+	struct rebind_type;
+	template <template <typename...> typename Pattern, typename ...OldArgs, typename ...NewArgs>
+	requires (sizeof...(NewArgs) <= sizeof...(OldArgs))
+	struct rebind_type<Pattern<OldArgs...>, NewArgs...> final : flex::type_constant<
+		apply_tuple_t<Pattern, flex::merge_tuple_t<
+			std::tuple<NewArgs...>,
+			flex::pop_nth_first_tuple_element_t<std::tuple<OldArgs...>, sizeof...(NewArgs)>
+		>>
+	> {};
+	template <typename T, typename ...Args>
+	using rebind_type_t = typename rebind_type<T, Args...>::type;
 
 } // namespace flex

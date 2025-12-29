@@ -17,4 +17,6 @@ TEST_CASE("outcome_traits", "[pipes]") {
 	REQUIRE(!Traits::has_value(nullopt));
 	REQUIRE(Traits::has_value(opt));
 	REQUIRE(Traits::value(opt) == 12);
+	REQUIRE(Traits::value_or(nullopt, -1) == -1);
+	REQUIRE(Traits::value_or(opt, -1) == 12);
 }

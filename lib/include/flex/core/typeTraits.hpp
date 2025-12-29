@@ -461,4 +461,16 @@ namespace flex{
 		};
 	#endif
 
+
+	template <typename T, typename ...Args>
+	concept predicate = std::invocable<T, Args...>;
+	template <typename T, typename Ret, typename ...Args>
+	concept predicate_with_return = predicate<T, Args...>
+		&& std::convertible_to<std::invoke_result_t<T, Args...>, Ret>;
+	template <typename T, typename Ret, typename ...Args>
+	concept predicate_with_strict_return = predicate<T, Args...>
+		&& predicate_with_return<T, Ret, Args...>
+		&& std::same_as<std::invoke_result_t<T, Args...>, Ret>;
+
+
 } // namespace flex
